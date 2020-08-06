@@ -1,3 +1,0 @@
-(executables
- (names one_to_one one_to_one_integration_test)
- (libraries httpaf))
