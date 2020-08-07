@@ -35,8 +35,11 @@ let start_server port =
       (Server.create_connection_handler ~request_handler ~error_handler)
     >|= fun (server : Lwt_io.server) ->
       assign_to_server_reference server;
-      print_string "Listening on port ";
-      print_endline (Int.to_string port));
+      (* For debugging:
+         print_string "Listening on port ";
+         print_endline (Int.to_string port)
+      *)
+      );
   let forever, _ = Lwt.wait () in
   (forever, server_reference);;
 

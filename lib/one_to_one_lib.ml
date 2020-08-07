@@ -46,11 +46,11 @@ let read_first_line_lwt filename =
 
 let last_seven_in_response_body = Http_client.last_seven_in_response_body;;
 
+let http_get = Http_client.http_get;;
+
 let powers_of_two_and_three x =
   let x_squared = x * x in
   (x_squared, x_squared * x);;
-
-let run_server_forever = Http_server.run_server_forever;;
 
 let run_server_for_n_seconds = Http_server.run_server_for_n_seconds;;
 

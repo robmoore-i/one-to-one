@@ -1,4 +1,5 @@
 open OUnit2;;
+open Lwt.Infix
 module Oto = One_to_one_lib;;
 
 let test_average _ =
@@ -46,6 +47,19 @@ let test_powers_of_two_and_three _ =
   assert_equal 9 square;
   assert_equal 27 cube;;
 
+let test_start_server_and_hit_it _ =
+  let port = 8080 in
+  let call_api =
+    Lwt_unix.sleep 0.5
+    >>= fun () ->
+    Oto.http_get "localhost" port "/"
+    >>= fun optional_pair ->
+    match optional_pair with
+      | None -> Lwt.return (print_endline "Fucked it")
+      | Some _ -> Lwt.return (print_endline "All good")
+  in
+  Oto.run_server_during_lwt_task port call_api;;
+
 let suite =
   "OneToOneTest" >::: [
     "test_average" >:: test_average;
@@ -55,7 +69,8 @@ let suite =
     "test_read_first_line" >:: test_read_first_line;
     "test_read_first_line_lwt" >:: test_read_first_line_lwt;
     "test_last_seven_in_response_body" >:: test_last_seven_in_response_body;
-    "test_powers_of_two_and_three" >:: test_powers_of_two_and_three
+    "test_powers_of_two_and_three" >:: test_powers_of_two_and_three;
+    "test_start_server_and_hit_it" >:: test_start_server_and_hit_it
   ];;
 
 run_test_tt_main suite
