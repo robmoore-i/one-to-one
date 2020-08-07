@@ -64,7 +64,7 @@ let last_seven_in_response_body hostname =
   let on_eof = Lwt.wakeup_later notify_finished in
   let response_body_reference = ref "" in
   let assign_to_reference s =
-    response_body_reference := s
+    response_body_reference := String.trim s
   in
   let response_handler _ response_body =
     let rec on_read bs ~off ~len =
@@ -92,6 +92,6 @@ let last_seven_in_response_body hostname =
   in
   Body.close_writer request_body;
   let last_seven_chars_in_response_body response_body_string =
-    String.sub response_body_string (-9 + String.length response_body_string) 7 in
+    String.sub response_body_string (-7 + String.length response_body_string) 7 in
   Lwt.bind finished (fun () ->
     promise_of_string (last_seven_chars_in_response_body !response_body_reference));;
