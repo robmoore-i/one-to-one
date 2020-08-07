@@ -41,7 +41,7 @@ let default_response_handler on_eof response_assigner response_body_assigner =
   in
   response_handler;;
 
-let execute_get_request hostname port_number request_path =
+let http_get hostname port_number request_path =
   connect_to_socket hostname port_number
   >>= fun socket ->
   let finished, notify_finished = Lwt.wait () in
@@ -62,7 +62,7 @@ let execute_get_request hostname port_number request_path =
           | Some r -> Lwt.return (Some (r, body)));;
 
 let last_seven_in_response_body hostname port_number request_path =
-  execute_get_request hostname port_number request_path
+  http_get hostname port_number request_path
   >>= fun r -> match r with
     | None -> Lwt.return None
     | Some (_, body) ->
