@@ -29,6 +29,18 @@ let client_get_request socket hostname request_path response_handler =
     socket
     (Request.create ~headers:(default_headers hostname) `GET request_path);;
 
+let default_response_handler on_eof response_assigner response_body_assigner =
+  let response_handler (response : Response.t) response_body =
+    (* For debugging: Format.fprintf Format.std_formatter "%a\n%!" Response.pp_hum _response; *)
+    response_assigner response;
+    let rec on_read bs ~off ~len =
+      Bigstringaf.substring ~off ~len bs |> String.trim |> response_body_assigner;
+      Body.schedule_read response_body ~on_read ~on_eof
+    in
+    Body.schedule_read response_body ~on_read ~on_eof
+  in
+  response_handler;;
+
 let execute_get_request hostname port_number request_path =
   using_socket hostname port_number
   >>= fun socket ->
@@ -38,15 +50,7 @@ let execute_get_request hostname port_number request_path =
   let assign_to_response_body_reference s = response_body_reference := Some s in
   let response_reference = ref None in
   let assign_to_response_reference r = response_reference := Some r in
-  let response_handler (response : Response.t) response_body =
-    (* For debugging: Format.fprintf Format.std_formatter "%a\n%!" Response.pp_hum _response; *)
-    assign_to_response_reference response;
-    let rec on_read bs ~off ~len =
-      Bigstringaf.substring ~off ~len bs |> String.trim |> assign_to_response_body_reference;
-      Body.schedule_read response_body ~on_read ~on_eof
-    in
-    Body.schedule_read response_body ~on_read ~on_eof
-  in
+  let response_handler = default_response_handler on_eof assign_to_response_reference assign_to_response_body_reference in
   let request_body = client_get_request socket hostname request_path response_handler in
   Body.close_writer request_body;
   let timeout = Lwt_unix.sleep 3.0 in
