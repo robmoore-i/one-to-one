@@ -35,18 +35,14 @@ let execute_get_request hostname port_number request_path =
   let finished, notify_finished = Lwt.wait () in
   let on_eof = Lwt.wakeup_later notify_finished in
   let response_body_reference = ref None in
-  let assign_to_body_reference s =
-    response_body_reference := Some s
-  in
+  let assign_to_response_body_reference s = response_body_reference := Some s in
   let response_reference = ref None in
-  let assign_to_response_reference r =
-    response_reference := Some r
-  in
+  let assign_to_response_reference r = response_reference := Some r in
   let response_handler (response : Response.t) response_body =
     (* For debugging: Format.fprintf Format.std_formatter "%a\n%!" Response.pp_hum _response; *)
     assign_to_response_reference response;
     let rec on_read bs ~off ~len =
-      Bigstringaf.substring ~off ~len bs |> String.trim |> assign_to_body_reference;
+      Bigstringaf.substring ~off ~len bs |> String.trim |> assign_to_response_body_reference;
       Body.schedule_read response_body ~on_read ~on_eof
     in
     Body.schedule_read response_body ~on_read ~on_eof
