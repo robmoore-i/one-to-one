@@ -29,7 +29,7 @@ let client_get_request socket hostname request_path response_handler =
     socket
     (Request.create ~headers:(default_headers hostname) `GET request_path);;
 
-let execute_get_request hostname port_number =
+let execute_get_request hostname port_number request_path =
   using_socket hostname port_number
   >>= fun socket ->
   let finished, notify_finished = Lwt.wait () in
@@ -51,7 +51,7 @@ let execute_get_request hostname port_number =
     in
     Body.schedule_read response_body ~on_read ~on_eof
   in
-  let request_body = client_get_request socket hostname "/" response_handler in
+  let request_body = client_get_request socket hostname request_path response_handler in
   Body.close_writer request_body;
   let timeout = Lwt_unix.sleep 3.0 in
   Lwt.bind (Lwt.pick [finished; timeout]) (fun () ->
@@ -61,8 +61,8 @@ let execute_get_request hostname port_number =
           | None -> Lwt.return None
           | Some r -> Lwt.return (Some (r, body)));;
 
-let last_seven_in_response_body hostname port_number =
-  execute_get_request hostname port_number
+let last_seven_in_response_body hostname port_number request_path =
+  execute_get_request hostname port_number request_path
   >>= fun r -> match r with
     | None -> Lwt.return None
     | Some (_, body) ->
