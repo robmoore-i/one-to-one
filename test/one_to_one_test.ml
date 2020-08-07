@@ -23,7 +23,7 @@ let test_read_first_line_lwt _ =
   assert_equal "This file contains some text" (Lwt_main.run (Oto.read_first_line_lwt "test_file.txt"));;
 
 let test_last_seven_in_response_body _ =
-  assert_equal "</html>" (Lwt_main.run (Oto.last_seven_in_response_body "www.google.com"));;
+  assert_equal "</html>" (Lwt_main.run (Oto.last_seven_in_response_body "www.amazon.co.uk"));;
 
 let suite =
   "OneToOneTest" >::: [
