@@ -22,11 +22,9 @@ let test_read_first_line _ =
 let test_read_first_line_lwt _ =
   assert_equal "This file contains some text" (Lwt_main.run (Oto.read_first_line_lwt "test_file.txt"));;
 
-let test_last_seven_in_response_body _ =
-  let actual = (Lwt_main.run (Oto.last_seven_in_response_body "www.google.com" 80 "/")) in
-  let expected = Some "</html>" in
+let assert_options_equal expected actual =
   let print_endline_option o = match o with
-    | Some data -> print_endline data
+    | Some data -> print_endline (String.concat " " ["Some"; data])
     | None -> print_endline "None"
   in
   try assert_equal expected actual
@@ -37,6 +35,11 @@ let test_last_seven_in_response_body _ =
     print_string "Actual:   ";
     print_endline_option actual;
     raise e;;
+
+let test_last_seven_in_response_body _ =
+  let actual = (Lwt_main.run (Oto.last_seven_in_response_body "www.google.com" 80 "/")) in
+  let expected = Some "</html>" in
+  assert_options_equal expected actual;;
 
 let test_powers_of_two_and_three _ =
   let (square, cube) = Oto.powers_of_two_and_three 3 in
