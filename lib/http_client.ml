@@ -22,6 +22,13 @@ let default_error_handler error =
 let default_headers hostname =
   Headers.of_list ["host", hostname];;
 
+let client_get_request socket hostname request_path response_handler =
+  Client.request
+    ~error_handler:default_error_handler
+    ~response_handler
+    socket
+    (Request.create ~headers:(default_headers hostname) `GET request_path);;
+
 let execute_get_request hostname port_number =
   using_socket hostname port_number
   >>= fun socket ->
@@ -44,13 +51,7 @@ let execute_get_request hostname port_number =
     in
     Body.schedule_read response_body ~on_read ~on_eof
   in
-  let request_body =
-    Client.request
-      ~error_handler:default_error_handler
-      ~response_handler
-      socket
-      (Request.create ~headers:(default_headers hostname) `GET "/")
-  in
+  let request_body = client_get_request socket hostname "/" response_handler in
   Body.close_writer request_body;
   let timeout = Lwt_unix.sleep 3.0 in
   Lwt.bind (Lwt.pick [finished; timeout]) (fun () ->
