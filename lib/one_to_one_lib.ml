@@ -41,4 +41,9 @@ let read_first_line_lwt filename =
     line_promise in
   (* Deliver the promised file descriptor to the function which reads the first
      line of the corresponding file *)
-  Lwt.bind file_descriptor_promise read_first_line_from_file_descriptor
+  Lwt.bind file_descriptor_promise read_first_line_from_file_descriptor;;
+
+let last_seven_in_response_body _ =
+  let (p : string Lwt.t), r = Lwt.wait () in
+  Lwt.wakeup r "As promised";
+  p

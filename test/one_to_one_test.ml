@@ -22,14 +22,18 @@ let test_read_first_line _ =
 let test_read_first_line_lwt _ =
   assert_equal "This file contains some text" (Lwt_main.run (Oto.read_first_line_lwt "test_file.txt"));;
 
+let test_last_seven_in_response_body _ =
+  assert_equal "</html>" (Lwt_main.run (Oto.last_seven_in_response_body "www.google.com"));;
+
 let suite =
-  "AverageTest" >::: [
+  "OneToOneTest" >::: [
     "test_average" >:: test_average;
     "test_square_plus_one" >:: test_square_plus_one;
     "test_cube_plus_one" >:: test_cube_plus_one;
     "test_first_times_last" >:: test_first_times_last;
     "test_read_first_line" >:: test_read_first_line;
-    "test_read_first_line_lwt" >:: test_read_first_line_lwt
+    "test_read_first_line_lwt" >:: test_read_first_line_lwt;
+    "test_last_seven_in_response_body" >:: test_last_seven_in_response_body
   ];;
 
 run_test_tt_main suite
