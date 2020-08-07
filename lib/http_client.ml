@@ -10,6 +10,15 @@ let using_socket hostname port_number =
   Lwt_unix.connect socket (Base.List.hd_exn addresses).Unix.ai_addr
   >>= fun () -> Lwt.return socket;;
 
+let default_error_handler error =
+    let error =
+      match error with
+      | `Malformed_response err -> Format.sprintf "Malformed response: %s" err
+      | `Invalid_response_body_length _ -> "Invalid body length"
+      | `Exn exn -> Format.sprintf "Exn raised: %s" (Base.Exn.to_string exn)
+    in
+    Format.eprintf "Error handling response: %s\n%!" error;;
+
 let last_seven_in_response_body hostname port_number =
   using_socket hostname port_number
   >>= fun socket ->
@@ -27,19 +36,10 @@ let last_seven_in_response_body hostname port_number =
     in
     Body.schedule_read response_body ~on_read ~on_eof
   in
-  let error_handler error =
-    let error =
-      match error with
-      | `Malformed_response err -> Format.sprintf "Malformed response: %s" err
-      | `Invalid_response_body_length _ -> "Invalid body length"
-      | `Exn exn -> Format.sprintf "Exn raised: %s" (Base.Exn.to_string exn)
-    in
-    Format.eprintf "Error handling response: %s\n%!" error
-  in
   let headers = Headers.of_list ["host", hostname] in
   let request_body =
     Client.request
-      ~error_handler
+      ~error_handler:default_error_handler
       ~response_handler
       socket
       (Request.create ~headers `GET "/")
