@@ -22,7 +22,7 @@ let default_error_handler error =
 let default_headers hostname =
   Headers.of_list ["host", hostname];;
 
-let last_seven_in_response_body hostname port_number =
+let get_request hostname port_number =
   using_socket hostname port_number
   >>= fun socket ->
   let finished, notify_finished = Lwt.wait () in
@@ -52,10 +52,19 @@ let last_seven_in_response_body hostname port_number =
       (Request.create ~headers:(default_headers hostname) `GET "/")
   in
   Body.close_writer request_body;
-  let last_seven_chars_in_response_body response_body_string =
-    String.sub response_body_string (-7 + String.length response_body_string) 7 in
   let timeout = Lwt_unix.sleep 3.0 in
   Lwt.bind (Lwt.pick [finished; timeout]) (fun () ->
     match !response_body_reference with
-      | Some body -> Lwt.return (Some (last_seven_chars_in_response_body body))
-      | None -> Lwt.return None);;
+      | None -> Lwt.return None
+      | Some body -> match !response_reference with
+          | None -> Lwt.return None
+          | Some r -> Lwt.return (Some (r, body)));;
+
+let last_seven_in_response_body hostname port_number =
+  get_request hostname port_number
+  >>= fun r -> match r with
+    | None -> Lwt.return None
+    | Some (_, body) ->
+      let last_seven_chars_in_response_body response_body_string =
+        String.sub response_body_string (-7 + String.length response_body_string) 7 in
+      Lwt.return (Some (last_seven_chars_in_response_body body));;
