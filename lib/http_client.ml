@@ -22,7 +22,7 @@ let default_error_handler error =
 let default_headers hostname =
   Headers.of_list ["host", hostname];;
 
-let get_request hostname port_number =
+let execute_get_request hostname port_number =
   using_socket hostname port_number
   >>= fun socket ->
   let finished, notify_finished = Lwt.wait () in
@@ -61,7 +61,7 @@ let get_request hostname port_number =
           | Some r -> Lwt.return (Some (r, body)));;
 
 let last_seven_in_response_body hostname port_number =
-  get_request hostname port_number
+  execute_get_request hostname port_number
   >>= fun r -> match r with
     | None -> Lwt.return None
     | Some (_, body) ->
