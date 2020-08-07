@@ -3,7 +3,7 @@ open Httpaf_lwt_unix
 open Lwt.Infix
 module Format = Caml.Format
 
-let using_socket hostname port_number =
+let connect_to_socket hostname port_number =
   Lwt.return (Unix.getaddrinfo hostname (Int.to_string port_number) [Unix.(AI_FAMILY PF_INET)])
   >>= fun addresses ->
   let socket = Lwt_unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
@@ -42,7 +42,7 @@ let default_response_handler on_eof response_assigner response_body_assigner =
   response_handler;;
 
 let execute_get_request hostname port_number request_path =
-  using_socket hostname port_number
+  connect_to_socket hostname port_number
   >>= fun socket ->
   let finished, notify_finished = Lwt.wait () in
   let on_eof = Lwt.wakeup_later notify_finished in
