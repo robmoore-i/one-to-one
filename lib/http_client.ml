@@ -3,12 +3,16 @@ open Httpaf_lwt_unix
 open Lwt.Infix
 module Format = Caml.Format
 
-let last_seven_in_response_body hostname port_number =
+let using_socket hostname port_number =
   Lwt.return (Unix.getaddrinfo hostname (Int.to_string port_number) [Unix.(AI_FAMILY PF_INET)])
   >>= fun addresses ->
   let socket = Lwt_unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
   Lwt_unix.connect socket (Base.List.hd_exn addresses).Unix.ai_addr
-  >>= fun () ->
+  >>= fun () -> Lwt.return socket;;
+
+let last_seven_in_response_body hostname port_number =
+  using_socket hostname port_number
+  >>= fun socket ->
   let finished, notify_finished = Lwt.wait () in
   let on_eof = Lwt.wakeup_later notify_finished in
   let response_body_reference = ref "---not yet filled in---" in
