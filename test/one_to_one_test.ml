@@ -34,6 +34,10 @@ let test_last_seven_in_response_body _ =
     print_endline actual;
     raise e;;
 
+let test_powers_of_two_and_three _ =
+  let (square, cube) = Oto.powers_of_two_and_three 3 in
+  assert_equal 9 square;
+  assert_equal 27 cube;;
 
 let suite =
   "OneToOneTest" >::: [
@@ -43,7 +47,8 @@ let suite =
     "test_first_times_last" >:: test_first_times_last;
     "test_read_first_line" >:: test_read_first_line;
     "test_read_first_line_lwt" >:: test_read_first_line_lwt;
-    "test_last_seven_in_response_body" >:: test_last_seven_in_response_body
+    "test_last_seven_in_response_body" >:: test_last_seven_in_response_body;
+    "test_powers_of_two_and_three" >:: test_powers_of_two_and_three
   ];;
 
 run_test_tt_main suite

@@ -45,3 +45,7 @@ let read_first_line_lwt filename =
   Lwt.bind file_descriptor_promise read_first_line_from_file_descriptor;;
 
 let last_seven_in_response_body = Http_client.last_seven_in_response_body;;
+
+let powers_of_two_and_three x =
+  let x_squared = x * x in
+  (x_squared, x_squared * x);;
