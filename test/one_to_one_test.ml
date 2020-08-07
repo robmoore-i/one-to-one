@@ -10,11 +10,18 @@ let test_square_plus_one _ =
 let test_cube_plus_one _ =
   assert_equal 9 (Oto.cube_plus_one 2);;
 
+let test_first_times_last _ =
+  assert_equal 0 (Oto.first_times_last []);
+  assert_equal 0 (Oto.first_times_last [2]);
+  assert_equal 6 (Oto.first_times_last [2; 3]);
+  assert_equal 21 (Oto.first_times_last [3; 5; 7]);;
+
 let suite =
   "AverageTest" >::: [
     "test_average" >:: test_average;
     "test_square_plus_one" >:: test_square_plus_one;
-    "test_cube_plus_one" >:: test_cube_plus_one
+    "test_cube_plus_one" >:: test_cube_plus_one;
+    "test_first_times_last" >:: test_first_times_last
   ];;
 
 run_test_tt_main suite
