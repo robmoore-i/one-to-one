@@ -22,7 +22,7 @@ let default_error_handler error =
 let default_headers hostname =
   Headers.of_list ["host", hostname];;
 
-let client_get_request socket hostname request_path response_handler =
+let default_get_request socket hostname request_path response_handler =
   Client.request
     ~error_handler:default_error_handler
     ~response_handler
@@ -51,7 +51,7 @@ let execute_get_request hostname port_number request_path =
   let response_reference = ref None in
   let assign_to_response_reference r = response_reference := Some r in
   let response_handler = default_response_handler on_eof assign_to_response_reference assign_to_response_body_reference in
-  let request_body = client_get_request socket hostname request_path response_handler in
+  let request_body = default_get_request socket hostname request_path response_handler in
   Body.close_writer request_body;
   let timeout = Lwt_unix.sleep 3.0 in
   Lwt.bind (Lwt.pick [finished; timeout]) (fun () ->
