@@ -14,7 +14,6 @@ let default_error_handler ?request:_ error start_response =
   end;
   Body.close_writer response_body;;
 
-
 let echo_get reqd =
   match Reqd.request reqd  with
   | { Request.meth = `GET; _ } ->
@@ -24,7 +23,6 @@ let echo_get reqd =
     let headers = Headers.of_list [ "connection", "close" ] in
     Reqd.respond_with_string reqd (Response.create ~headers `Method_not_allowed) "";;
 
-
 let start_server port =
   let listen_address = Unix.(ADDR_INET (inet_addr_loopback, port)) in
   let request_handler (_ : Unix.sockaddr) = echo_get in
@@ -33,7 +31,7 @@ let start_server port =
     Lwt_io.establish_server_with_client_socket
       listen_address
       (Server.create_connection_handler ~request_handler ~error_handler)
-    >|= fun _server ->
+    >|= fun (_server : Lwt_io.server) ->
       print_string "Listening on port ";
       print_endline (Int.to_string port));
   let forever, _ = Lwt.wait () in
