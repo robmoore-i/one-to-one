@@ -19,6 +19,9 @@ let default_error_handler error =
     in
     Format.eprintf "Error handling response: %s\n%!" error;;
 
+let default_headers hostname =
+  Headers.of_list ["host", hostname];;
+
 let last_seven_in_response_body hostname port_number =
   using_socket hostname port_number
   >>= fun socket ->
@@ -36,13 +39,12 @@ let last_seven_in_response_body hostname port_number =
     in
     Body.schedule_read response_body ~on_read ~on_eof
   in
-  let headers = Headers.of_list ["host", hostname] in
   let request_body =
     Client.request
       ~error_handler:default_error_handler
       ~response_handler
       socket
-      (Request.create ~headers `GET "/")
+      (Request.create ~headers:(default_headers hostname) `GET "/")
   in
   Body.close_writer request_body;
   let last_seven_chars_in_response_body response_body_string =
