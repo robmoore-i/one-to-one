@@ -24,14 +24,18 @@ let test_read_first_line_lwt _ =
 
 let test_last_seven_in_response_body _ =
   let actual = (Lwt_main.run (Oto.last_seven_in_response_body "www.google.com" 80)) in
-  let expected = "</html>" in
+  let expected = Some "</html>" in
+  let print_endline_option o = match o with
+    | Some data -> print_endline data
+    | None -> print_endline "None"
+  in
   try assert_equal expected actual
   with e ->
     Format.eprintf "\nError: %s\n%!" (Caml.Format.sprintf "Exn raised: %s" (Base.Exn.to_string e));
     print_string "Expected: ";
-    print_endline expected;
+    print_endline_option expected;
     print_string "Actual:   ";
-    print_endline actual;
+    print_endline_option actual;
     raise e;;
 
 let test_powers_of_two_and_three _ =

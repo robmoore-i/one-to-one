@@ -27,12 +27,17 @@ let last_seven_in_response_body hostname port_number =
   >>= fun socket ->
   let finished, notify_finished = Lwt.wait () in
   let on_eof = Lwt.wakeup_later notify_finished in
-  let response_body_reference = ref "---not yet filled in---" in
+  let response_body_reference = ref None in
   let assign_to_body_reference s =
-    response_body_reference := String.trim s
+    response_body_reference := Some (String.trim s)
   in
-  let response_handler (_response : Response.t) response_body =
+  let response_reference = ref None in
+  let assign_to_response_reference r =
+    response_reference := Some r
+  in
+  let response_handler (response : Response.t) response_body =
     (* For debugging: Format.fprintf Format.std_formatter "%a\n%!" Response.pp_hum _response; *)
+    assign_to_response_reference response;
     let rec on_read bs ~off ~len =
       Bigstringaf.substring ~off ~len bs |> assign_to_body_reference;
       Body.schedule_read response_body ~on_read ~on_eof
@@ -51,4 +56,6 @@ let last_seven_in_response_body hostname port_number =
     String.sub response_body_string (-7 + String.length response_body_string) 7 in
   let timeout = Lwt_unix.sleep 3.0 in
   Lwt.bind (Lwt.pick [finished; timeout]) (fun () ->
-    Lwt.return (last_seven_chars_in_response_body !response_body_reference));;
+    match !response_body_reference with
+      | Some body -> Lwt.return (Some (last_seven_chars_in_response_body body))
+      | None -> Lwt.return None);;
