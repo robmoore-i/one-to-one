@@ -1,0 +1,40 @@
+open Httpaf
+open Httpaf_lwt_unix
+open Lwt.Infix
+module Format = Caml.Format
+
+let default_error_handler ?request:_ error start_response =
+  let response_body = start_response Headers.empty in
+  begin match error with
+    | `Exn exn ->
+      Body.write_string response_body (Base.Exn.to_string exn);
+      Body.write_string response_body "\n";
+    | #Status.standard as error ->
+      Body.write_string response_body (Status.default_reason_phrase error)
+  end;
+  Body.close_writer response_body;;
+
+
+let echo_get reqd =
+  match Reqd.request reqd  with
+  | { Request.meth = `GET; _ } ->
+    let headers = Headers.of_list ["content-type", "application/json"; "connection", "close"] in
+    Reqd.respond_with_string reqd (Response.create ~headers `OK) "All good mate"
+  | _ ->
+    let headers = Headers.of_list [ "connection", "close" ] in
+    Reqd.respond_with_string reqd (Response.create ~headers `Method_not_allowed) "";;
+
+
+let start_server port =
+  let listen_address = Unix.(ADDR_INET (inet_addr_loopback, port)) in
+  let request_handler (_ : Unix.sockaddr) = echo_get in
+  let error_handler (_ : Unix.sockaddr) = default_error_handler in
+  Lwt.async (fun () ->
+    Lwt_io.establish_server_with_client_socket
+      listen_address
+      (Server.create_connection_handler ~request_handler ~error_handler)
+    >|= fun _server ->
+      print_string "Listening on port ";
+      print_endline (Int.to_string port));
+  let forever, _ = Lwt.wait () in
+  Lwt_main.run forever;;
