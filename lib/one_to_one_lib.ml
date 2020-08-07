@@ -49,8 +49,8 @@ let read_first_line_lwt filename =
      line of the corresponding file *)
   Lwt.bind file_descriptor_promise read_first_line_from_file_descriptor;;
 
-let last_seven_in_response_body hostname =
-  Lwt.return (Unix.getaddrinfo hostname (Int.to_string 80) [Unix.(AI_FAMILY PF_INET)])
+let last_seven_in_response_body hostname port_number =
+  Lwt.return (Unix.getaddrinfo hostname (Int.to_string port_number) [Unix.(AI_FAMILY PF_INET)])
   >>= fun addresses ->
   let socket = Lwt_unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
   Lwt_unix.connect socket (Base.List.hd_exn addresses).Unix.ai_addr
