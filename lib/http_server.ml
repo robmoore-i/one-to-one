@@ -44,10 +44,12 @@ let run_server_forever port =
   let (forever, _) = start_server port in
   Lwt_main.run forever;;
 
-let run_server_for_n_seconds port seconds =
+let run_server_during_lwt_task port lwt_task =
   let (forever, server_reference) = start_server port in
-  let timeout = Lwt_unix.sleep seconds in
-  Lwt_main.run (Lwt.bind (Lwt.pick [forever; timeout]) (fun () ->
+  Lwt_main.run (Lwt.bind (Lwt.pick [forever; lwt_task]) (fun () ->
     match !server_reference with
       | None -> Lwt.return (print_endline "Something broke")
       | Some reference -> Lwt_io.shutdown_server reference));;
+
+let run_server_for_n_seconds port seconds =
+  run_server_during_lwt_task port (Lwt_unix.sleep seconds);;
