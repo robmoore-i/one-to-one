@@ -51,3 +51,7 @@ let powers_of_two_and_three x =
   (x_squared, x_squared * x);;
 
 let start_server = Http_server.start_server;;
+
+let run_server_forever = Http_server.run_server_forever;;
+
+let run_server_for_n_seconds = Http_server.run_server_for_n_seconds;;

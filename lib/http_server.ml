@@ -27,12 +27,27 @@ let start_server port =
   let listen_address = Unix.(ADDR_INET (inet_addr_loopback, port)) in
   let request_handler (_ : Unix.sockaddr) = echo_get in
   let error_handler (_ : Unix.sockaddr) = default_error_handler in
+  let server_reference = ref None in
+  let assign_to_server_reference s = server_reference := Some s in
   Lwt.async (fun () ->
     Lwt_io.establish_server_with_client_socket
       listen_address
       (Server.create_connection_handler ~request_handler ~error_handler)
-    >|= fun (_server : Lwt_io.server) ->
+    >|= fun (server : Lwt_io.server) ->
+      assign_to_server_reference server;
       print_string "Listening on port ";
       print_endline (Int.to_string port));
   let forever, _ = Lwt.wait () in
+  (forever, server_reference);;
+
+let run_server_forever port =
+  let (forever, _) = start_server port in
   Lwt_main.run forever;;
+
+let run_server_for_n_seconds port seconds =
+  let (forever, server_reference) = start_server port in
+  let timeout = Lwt_unix.sleep seconds in
+  Lwt_main.run (Lwt.bind (Lwt.pick [forever; timeout]) (fun () ->
+    match !server_reference with
+      | None -> Lwt.return (print_endline "Something broke")
+      | Some reference -> Lwt_io.shutdown_server reference));;
