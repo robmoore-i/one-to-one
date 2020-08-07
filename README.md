@@ -2,15 +2,22 @@
 
 Dabbling in OCaml
 
-# exec
+#### Run the executable
 
-Contains an executable.
+```
+cd exec
+./run.sh
+```
 
-# lib
+#### Run the tests with:
 
-Contains composable functions that are used together in order to produce an
-executable.
+```
+cd test
+./run.sh
+```
 
-# test
+#### Issues raised while learning:
 
-Contains tests for the functions in lib.
+- https://github.com/gildor478/ounit/issues/20
+- https://github.com/ocsigen/lwt/issues/797
+
