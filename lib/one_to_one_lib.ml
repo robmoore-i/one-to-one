@@ -62,10 +62,13 @@ let last_seven_in_response_body hostname =
   >>= fun () ->
   let finished, notify_finished = Lwt.wait () in
   let on_eof = Lwt.wakeup_later notify_finished in
-  let response_handler response response_body =
-    Format.fprintf Format.std_formatter "%a\n%!" Response.pp_hum response;
+  let response_body_reference = ref "" in
+  let assign_to_reference s =
+    response_body_reference := s
+  in
+  let response_handler _ response_body =
     let rec on_read bs ~off ~len =
-      Bigstringaf.substring ~off ~len bs |> print_string;
+      Bigstringaf.substring ~off ~len bs |> assign_to_reference;
       Body.schedule_read response_body ~on_read ~on_eof
     in
     Body.schedule_read response_body ~on_read ~on_eof
@@ -88,4 +91,7 @@ let last_seven_in_response_body hostname =
       (Request.create ~headers `GET "/")
   in
   Body.close_writer request_body;
-  Lwt.bind finished (fun () -> promise_of_string "</html>");;
+  let last_seven_chars_in_response_body response_body_string =
+    String.sub response_body_string (-9 + String.length response_body_string) 7 in
+  Lwt.bind finished (fun () ->
+    promise_of_string (last_seven_chars_in_response_body !response_body_reference));;
