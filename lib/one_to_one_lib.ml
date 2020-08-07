@@ -37,11 +37,6 @@ let read_first_line filename =
     close_in_noerr input_channel;
     raise e;;
 
-let promise_of_string s =
-  let (p : string Lwt.t), r = Lwt.wait () in
-  Lwt.wakeup r s;
-  p;;
-
 let read_first_line_lwt filename =
   (* The file will close by default. See: https://ocsigen.org/lwt/5.2.0/api/Lwt_io *)
   let file_descriptor_promise = Lwt_unix.openfile filename [O_RDONLY; O_NONBLOCK; O_CLOEXEC] 0 in
@@ -55,18 +50,19 @@ let read_first_line_lwt filename =
   Lwt.bind file_descriptor_promise read_first_line_from_file_descriptor;;
 
 let last_seven_in_response_body hostname =
-  Lwt_unix.getaddrinfo hostname (Int.to_string 80) [Unix.(AI_FAMILY PF_INET)]
+  Lwt.return (Unix.getaddrinfo hostname (Int.to_string 80) [Unix.(AI_FAMILY PF_INET)])
   >>= fun addresses ->
   let socket = Lwt_unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
   Lwt_unix.connect socket (Base.List.hd_exn addresses).Unix.ai_addr
   >>= fun () ->
   let finished, notify_finished = Lwt.wait () in
   let on_eof = Lwt.wakeup_later notify_finished in
-  let response_body_reference = ref "" in
+  let response_body_reference = ref "---not yet filled in---" in
   let assign_to_reference s =
     response_body_reference := String.trim s
   in
-  let response_handler _ response_body =
+  let response_handler _response response_body =
+    (* For debugging: Format.fprintf Format.std_formatter "%a\n%!" Response.pp_hum _response; *)
     let rec on_read bs ~off ~len =
       Bigstringaf.substring ~off ~len bs |> assign_to_reference;
       Body.schedule_read response_body ~on_read ~on_eof
@@ -82,7 +78,7 @@ let last_seven_in_response_body hostname =
     in
     Format.eprintf "Error handling response: %s\n%!" error
   in
-  let headers = Headers.of_list [ "host", hostname ] in
+  let headers = Headers.of_list ["host", hostname] in
   let request_body =
     Client.request
       ~error_handler
@@ -93,5 +89,6 @@ let last_seven_in_response_body hostname =
   Body.close_writer request_body;
   let last_seven_chars_in_response_body response_body_string =
     String.sub response_body_string (-7 + String.length response_body_string) 7 in
-  Lwt.bind finished (fun () ->
-    promise_of_string (last_seven_chars_in_response_body !response_body_reference));;
+  let timeout = Lwt_unix.sleep 3.0 in
+  Lwt.bind (Lwt.pick [finished; timeout]) (fun () ->
+    Lwt.return (last_seven_chars_in_response_body !response_body_reference));;

@@ -23,7 +23,17 @@ let test_read_first_line_lwt _ =
   assert_equal "This file contains some text" (Lwt_main.run (Oto.read_first_line_lwt "test_file.txt"));;
 
 let test_last_seven_in_response_body _ =
-  assert_equal "</html>" (Lwt_main.run (Oto.last_seven_in_response_body "www.amazon.co.uk"));;
+  let actual = (Lwt_main.run (Oto.last_seven_in_response_body "www.amazon.co.uk")) in
+  let expected = "</html>" in
+  try assert_equal expected actual
+  with e ->
+    Format.eprintf "\nError: %s\n%!" (Caml.Format.sprintf "Exn raised: %s" (Base.Exn.to_string e));
+    print_string "Expected: ";
+    print_endline expected;
+    print_string "Actual:   ";
+    print_endline actual;
+    raise e;;
+
 
 let suite =
   "OneToOneTest" >::: [
