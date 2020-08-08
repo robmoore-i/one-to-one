@@ -43,7 +43,8 @@ let start_in_client_mode _ =
   print_string "> "; flush stdout;
   Client.get_server_socket_from_stdin
   >>= (fun (hostname, port) ->
-    Lwt.return (print_endline (String.concat " " ["Running in client mode against server at host"; hostname; "on port"; Int.to_string port]))
+    let startup_message = String.concat " " ["Running in client mode against server at host"; hostname; "on port"; Int.to_string port] in
+    Lwt.return (print_endline startup_message)
   );;
 
 module Server = struct
