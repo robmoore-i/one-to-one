@@ -41,6 +41,7 @@ end;;
 exception ResponseNotReceived of string;;
 
 let rec chat hostname port =
+  print_string "> "; flush stdout;
   Lwt_io.read_line Lwt_io.stdin
   >>= fun message ->
   http_get hostname port (String.concat "=" ["/message?content"; message])
