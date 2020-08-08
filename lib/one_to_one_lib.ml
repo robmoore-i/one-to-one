@@ -2,8 +2,6 @@ open Lwt.Infix
 
 let http_get = Http_client.http_get;;
 
-let run_server_for_n_seconds = Http_server.run_server_for_n_seconds;;
-
 let run_server_during_lwt_task = Http_server.run_server_during_lwt_task;;
 
 module Mode = struct
