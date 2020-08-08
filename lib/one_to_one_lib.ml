@@ -1,3 +1,5 @@
+open Lwt.Infix
+
 let average a b =
   (a +. b) /. 2.0;;
 
@@ -76,12 +78,8 @@ let pick_session_mode user_input_promise =
       | unrecognised_mode -> Lwt.fail (Mode.Unrecognised (String.concat " " ["Unrecognised mode:"; unrecognised_mode])));;
 
 let pick_session_mode_from_stdin =
-  let mode_promise = Lwt_io.read_line Lwt_io.stdin in
-  pick_session_mode mode_promise;;
-
-let start_in_client_mode _ = Lwt.return (print_endline "Running in client mode");;
-
-let start_in_server_mode _ = Lwt.return (print_endline "Running in server mode");;
+  let user_input_promise = Lwt_io.read_line Lwt_io.stdin in
+  pick_session_mode user_input_promise;;
 
 module Client = struct
   exception MalformedSocket of string;;
@@ -92,4 +90,18 @@ module Client = struct
       match split with
         | (host :: port :: []) -> Lwt.return (host, int_of_string port)
         | _ -> Lwt.fail (MalformedSocket (String.concat " " ["Couldn't parse hostname and port number from:"; user_input])));;
+
+  let get_server_socket_from_stdin =
+    let user_input_promise = Lwt_io.read_line Lwt_io.stdin in
+    get_server_socket user_input_promise;;
 end;;
+
+let start_in_client_mode _ =
+  print_endline "What's the socket of the server in the format host:port? (e.g. 'localhost:8080')";
+  print_string "> "; flush stdout;
+  Client.get_server_socket_from_stdin
+  >>= (fun (hostname, port) ->
+    Lwt.return (print_endline (String.concat " " ["Running in client mode against server at host"; hostname; "on port"; Int.to_string port]))
+  );;
+
+let start_in_server_mode _ = Lwt.return (print_endline "Running in server mode");;
