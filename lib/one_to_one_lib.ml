@@ -55,3 +55,24 @@ let powers_of_two_and_three x =
 let run_server_for_n_seconds = Http_server.run_server_for_n_seconds;;
 
 let run_server_during_lwt_task = Http_server.run_server_during_lwt_task;;
+
+type mode =
+  | Client
+  | Server;;
+
+exception UnrecognisedMode of string;;
+
+let mode_to_string mode = match mode with
+  | Client -> "client_mode"
+  | Server -> "server_mode"
+
+let pick_session_mode mode_promise =
+  Lwt.bind mode_promise (fun mode ->
+    match mode with
+      | "client" -> Lwt.return Client
+      | "server" -> Lwt.return Server
+      | unrecognised_mode -> Lwt.fail (UnrecognisedMode (String.concat " " ["Unrecognised mode:"; unrecognised_mode])));;
+
+let pick_session_mode_from_stdin =
+  let mode_promise = Lwt_io.read_line Lwt_io.stdin in
+  pick_session_mode mode_promise;;

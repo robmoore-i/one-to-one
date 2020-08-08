@@ -60,6 +60,12 @@ let test_start_server_and_hit_it _ =
   in
   Oto.run_server_during_lwt_task port call_api;;
 
+let test_pick_session_mode _ =
+  let simulate_pick_session_mode user_input = (Lwt_main.run (Oto.pick_session_mode (Lwt.return user_input))) in
+  assert_equal Oto.Client (simulate_pick_session_mode "client");
+  assert_equal Oto.Server (simulate_pick_session_mode "server");
+  assert_raises (Oto.UnrecognisedMode "Unrecognised mode: nonsense") (fun() -> simulate_pick_session_mode "nonsense")
+
 let suite =
   "OneToOneTest" >::: [
     "test_average" >:: test_average;
@@ -70,7 +76,8 @@ let suite =
     "test_read_first_line_lwt" >:: test_read_first_line_lwt;
     "test_last_seven_in_response_body" >:: test_last_seven_in_response_body;
     "test_powers_of_two_and_three" >:: test_powers_of_two_and_three;
-    "test_start_server_and_hit_it" >:: test_start_server_and_hit_it
+    "test_start_server_and_hit_it" >:: test_start_server_and_hit_it;
+    "test_pick_session_mode" >:: test_pick_session_mode
   ];;
 
 run_test_tt_main suite
