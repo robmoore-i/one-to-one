@@ -78,8 +78,10 @@ end;;
 
 let default_server_req_handler reqd =
   match Reqd.request reqd  with
-  | { Request.meth = `GET; _ } ->
+  | { Request.meth = `GET; target; _ } ->
     let headers = Headers.of_list ["content-type", "application/json"; "connection", "close"] in
+    let target_expected_prefix_length = String.length "/message?content=" in
+    print_endline (String.concat " " ["> >"; (String.sub target target_expected_prefix_length ((String.length target) - target_expected_prefix_length))]);
     Reqd.respond_with_string reqd (Response.create ~headers `OK) "Message receieved"
   | _ ->
     let headers = Headers.of_list [ "connection", "close" ] in
