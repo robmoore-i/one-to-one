@@ -26,6 +26,17 @@ let pick_session_mode user_input_promise =
 
 let pick_session_mode_from_stdin = pick_session_mode (Lwt_io.read_line Lwt_io.stdin);;
 
+exception ResponseNotReceived of string;;
+
+let rec chat hostname port =
+  print_string "> "; flush stdout;
+  Lwt_io.read_line Lwt_io.stdin
+  >>= fun message ->
+  http_get hostname port (String.concat "=" ["/message?content"; message])
+  >>= fun optional_response -> match optional_response with
+    | None -> Lwt.fail (ResponseNotReceived "Didn't get an acknowledgement from chat partner")
+    | Some (_, body) -> Lwt.bind (Lwt.return (print_endline body)) (fun () -> chat hostname port);;
+
 module Client = struct
   exception MalformedSocket of string;;
 
@@ -38,17 +49,6 @@ module Client = struct
 
   let get_server_socket_from_stdin = get_server_socket (Lwt_io.read_line Lwt_io.stdin);;
 end;;
-
-exception ResponseNotReceived of string;;
-
-let rec chat hostname port =
-  print_string "> "; flush stdout;
-  Lwt_io.read_line Lwt_io.stdin
-  >>= fun message ->
-  http_get hostname port (String.concat "=" ["/message?content"; message])
-  >>= fun optional_response -> match optional_response with
-    | None -> Lwt.fail (ResponseNotReceived "Didn't get an acknowledgement from chat partner")
-    | Some (_, body) -> Lwt.bind (Lwt.return (print_endline body)) (fun () -> chat hostname port);;
 
 let start_in_client_mode _ =
   print_endline "What's the socket of the server in the format host:port? (e.g. 'localhost:8080')";
