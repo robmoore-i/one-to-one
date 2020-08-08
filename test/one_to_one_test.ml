@@ -50,12 +50,15 @@ let test_pick_session_mode _ =
   let simulate_pick_session_mode user_input = (Lwt_main.run (Oto.pick_session_mode (Lwt.return user_input))) in
   assert_equal Oto.Mode.Client (simulate_pick_session_mode "client");
   assert_equal Oto.Mode.Server (simulate_pick_session_mode "server");
-  assert_raises (Oto.Mode.Unrecognised "Unrecognised mode: nonsense") (fun() -> simulate_pick_session_mode "nonsense")
+  assert_raises (Oto.Mode.Unrecognised "Unrecognised mode: nonsense")
+    (fun() -> simulate_pick_session_mode "nonsense")
 
 let test_client_requests_server_socket _ =
-  let simulate_get_server_socket user_input = (Lwt_main.run (Oto.Client.get_server_socket user_input)) in
+  let simulate_get_server_socket user_input = (Lwt_main.run (Oto.Client.get_server_socket (Lwt.return user_input))) in
   Assertions.assert_socket_pair_equal ("localhost", 8080) (simulate_get_server_socket "localhost:8080");
-  Assertions.assert_socket_pair_equal ("www.my-ec2-instance.com", 8081) (simulate_get_server_socket "www.my-ec2-instance.com:8081")
+  Assertions.assert_socket_pair_equal ("www.my-ec2-instance.com", 8081) (simulate_get_server_socket "www.my-ec2-instance.com:8081");
+  assert_raises (Oto.Client.MalformedSocket "Couldn't parse hostname and port number from: nonsense")
+    (fun() -> simulate_get_server_socket "nonsense")
 
 let suite =
   "OneToOneTest" >::: [

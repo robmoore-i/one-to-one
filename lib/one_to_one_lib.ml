@@ -84,6 +84,12 @@ let start_in_client_mode _ = Lwt.return (print_endline "Running in client mode")
 let start_in_server_mode _ = Lwt.return (print_endline "Running in server mode");;
 
 module Client = struct
-  let get_server_socket _ =
-    Lwt.return ("localhost", 8081);;
+  exception MalformedSocket of string;;
+
+  let get_server_socket user_input_promise =
+    Lwt.bind user_input_promise (fun user_input ->
+      let split = String.split_on_char ':' user_input in
+      match split with
+        | (host :: port :: []) -> Lwt.return (host, int_of_string port)
+        | _ -> Lwt.fail (MalformedSocket (String.concat " " ["Couldn't parse hostname and port number from:"; user_input])));;
 end;;
