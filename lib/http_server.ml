@@ -14,18 +14,9 @@ let default_error_handler ?request:_ error start_response =
   end;
   Body.close_writer response_body;;
 
-let echo_get reqd =
-  match Reqd.request reqd  with
-  | { Request.meth = `GET; _ } ->
-    let headers = Headers.of_list ["content-type", "application/json"; "connection", "close"] in
-    Reqd.respond_with_string reqd (Response.create ~headers `OK) "Message receieved"
-  | _ ->
-    let headers = Headers.of_list [ "connection", "close" ] in
-    Reqd.respond_with_string reqd (Response.create ~headers `Method_not_allowed) "";;
-
-let start_server port =
+let start_server port req_handler  =
   let listen_address = Unix.(ADDR_INET (inet_addr_loopback, port)) in
-  let request_handler (_ : Unix.sockaddr) = echo_get in
+  let request_handler (_ : Unix.sockaddr) = req_handler in
   let error_handler (_ : Unix.sockaddr) = default_error_handler in
   let server_reference = ref None in
   let assign_to_server_reference s = server_reference := Some s in
@@ -43,16 +34,16 @@ let start_server port =
   let forever, _ = Lwt.wait () in
   (forever, server_reference);;
 
-let run_server_forever port =
-  let (forever, _) = start_server port in
+let run_server_forever port req_handler =
+  let (forever, _) = start_server port req_handler in
   Lwt_main.run forever;;
 
-let run_server_during_lwt_task port lwt_task =
-  let (forever, server_reference) = start_server port in
+let run_server_during_lwt_task port req_handler lwt_task =
+  let (forever, server_reference) = start_server port req_handler in
   Lwt_main.run (Lwt.bind (Lwt.pick [forever; lwt_task]) (fun () ->
     match !server_reference with
       | None -> Lwt.return (print_endline "Something broke")
       | Some reference -> Lwt_io.shutdown_server reference));;
 
-let run_server_for_n_seconds port seconds =
-  run_server_during_lwt_task port (Lwt_unix.sleep seconds);;
+let run_server_for_n_seconds port req_handler seconds =
+  run_server_during_lwt_task port req_handler (Lwt_unix.sleep seconds);;

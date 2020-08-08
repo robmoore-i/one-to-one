@@ -27,7 +27,7 @@ let test_start_server_and_hit_it _ =
       | None -> Lwt.fail (OUnitTest.OUnit_failure "Didn't get a valid response")
       | Some _ -> Lwt.return ()
   in
-  Oto.run_server_during_lwt_task port call_api;;
+  Oto.run_server_during_lwt_task port Oto.default_server_req_handler call_api;;
 
 let test_pick_session_mode _ =
   let simulate_pick_session_mode user_input = (Lwt_main.run (Oto.pick_session_mode (Lwt.return user_input))) in

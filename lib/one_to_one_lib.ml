@@ -1,3 +1,4 @@
+open Httpaf
 open Lwt.Infix
 
 let http_get = Http_client.http_get;;
@@ -75,12 +76,21 @@ module Server = struct
   let pick_port_from_stdin _ = pick_port (Lwt.return (input_line stdin));;
 end;;
 
+let default_server_req_handler reqd =
+  match Reqd.request reqd  with
+  | { Request.meth = `GET; _ } ->
+    let headers = Headers.of_list ["content-type", "application/json"; "connection", "close"] in
+    Reqd.respond_with_string reqd (Response.create ~headers `OK) "Message receieved"
+  | _ ->
+    let headers = Headers.of_list [ "connection", "close" ] in
+    Reqd.respond_with_string reqd (Response.create ~headers `Method_not_allowed) "";;
+
 let start_in_server_mode _ =
   print_endline "Which port should this server run on? (e.g. '8081')";
   print_string "> "; flush stdout;
   Server.pick_port_from_stdin ()
   >>= (fun port_number ->
-  let (forever, _) = Http_server.start_server port_number in
+  let (forever, _) = Http_server.start_server port_number default_server_req_handler in
   let startup_message = String.concat " " ["Running in server mode on port"; Int.to_string port_number] in
   Lwt.bind (
     Lwt.return (print_endline startup_message))
