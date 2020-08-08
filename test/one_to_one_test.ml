@@ -27,10 +27,10 @@ let test_start_server_and_hit_it _ =
       | None -> Lwt.fail (OUnitTest.OUnit_failure "Didn't get a valid response")
       | Some _ -> Lwt.return ()
   in
-  Oto.run_server_during_lwt_task port Oto.default_server_req_handler call_api;;
+  Oto.run_server_during_lwt_task port Oto.Server.chat_req_handler call_api;;
 
 let test_pick_session_mode _ =
-  let simulate_pick_session_mode user_input = (Lwt_main.run (Oto.pick_session_mode (Lwt.return user_input))) in
+  let simulate_pick_session_mode user_input = (Lwt_main.run (Oto.Mode.pick (Lwt.return user_input))) in
   assert_equal Oto.Mode.Client (simulate_pick_session_mode "client");
   assert_equal Oto.Mode.Server (simulate_pick_session_mode "server");
   assert_raises (Oto.Mode.Unrecognised "Unrecognised mode: nonsense")
