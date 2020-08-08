@@ -60,7 +60,7 @@ Cons:
 
 - As a protocol for this functionality, it would be a valid criticism to say
   that HTTP as a whole is heavyweight.
-- Using plain HTTP is slow and not inherently bidirectional, as opposed to
+- Using plain HTTP isn't inherently bidirectional, as opposed to
   something like web sockets, which would be a more natural fit for this
   problem.
   
