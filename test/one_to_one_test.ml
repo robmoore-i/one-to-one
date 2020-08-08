@@ -41,14 +41,21 @@ let test_client_requests_server_socket _ =
   Assertions.assert_socket_pair_equal ("localhost", 8080) (simulate_get_server_socket "localhost:8080");
   Assertions.assert_socket_pair_equal ("www.my-ec2-instance.com", 8081) (simulate_get_server_socket "www.my-ec2-instance.com:8081");
   assert_raises (Oto.Client.MalformedSocket "Couldn't parse hostname and port number from: nonsense")
-    (fun() -> simulate_get_server_socket "nonsense")
+    (fun() -> simulate_get_server_socket "nonsense");;
+
+let test_server_requests_port_to_run_on _ =
+  let simulate_get_server_port user_input = (Lwt_main.run (Oto.Server.pick_port (Lwt.return user_input))) in
+  assert_equal 8080 (simulate_get_server_port "8080");
+  assert_raises (Oto.Server.MalformedPort "Couldn't parse port number from: nonsense")
+    (fun() -> simulate_get_server_port "nonsense");;
 
 let suite =
   "OneToOneTest" >::: [
     "test_http_get" >:: test_http_get;
     "test_start_server_and_hit_it" >:: test_start_server_and_hit_it;
     "test_pick_session_mode" >:: test_pick_session_mode;
-    "test_client_requests_server_socket" >:: test_client_requests_server_socket
+    "test_client_requests_server_socket" >:: test_client_requests_server_socket;
+    "test_server_requests_port_to_run_on" >:: test_server_requests_port_to_run_on
   ];;
 
 run_test_tt_main suite
