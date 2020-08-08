@@ -105,3 +105,13 @@ let start_in_client_mode _ =
   );;
 
 let start_in_server_mode _ = Lwt.return (print_endline "Running in server mode");;
+
+let start_one_on_one _ =
+  print_endline "Pick a mode ('client' or 'server')";
+  print_string "> "; flush stdout;
+  Lwt_main.run (pick_session_mode_from_stdin
+  >>= (fun mode ->
+    match mode with
+      | Mode.Client -> start_in_client_mode ()
+      | Mode.Server -> start_in_server_mode ()
+    ));;
