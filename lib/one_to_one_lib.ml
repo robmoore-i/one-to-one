@@ -68,9 +68,9 @@ module Mode = struct
     | Server -> "server_mode";;
 end;;
 
-let pick_session_mode mode_promise =
-  Lwt.bind mode_promise (fun mode ->
-    match mode with
+let pick_session_mode user_input_promise =
+  Lwt.bind user_input_promise (fun user_input ->
+    match user_input with
       | "client" -> Lwt.return Mode.Client
       | "server" -> Lwt.return Mode.Server
       | unrecognised_mode -> Lwt.fail (Mode.Unrecognised (String.concat " " ["Unrecognised mode:"; unrecognised_mode])));;
