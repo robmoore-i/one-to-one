@@ -38,14 +38,25 @@ module Client = struct
   let get_server_socket_from_stdin = get_server_socket (Lwt_io.read_line Lwt_io.stdin);;
 end;;
 
+exception ResponseNotReceived of string;;
+
+let rec chat hostname port =
+  Lwt_io.read_line Lwt_io.stdin
+  >>= fun message ->
+  http_get hostname port (String.concat "=" ["/message?content"; message])
+  >>= fun optional_response -> match optional_response with
+    | None -> Lwt.fail (ResponseNotReceived "Didn't get an acknowledgement from chat partner")
+    | Some (_, body) -> Lwt.bind (Lwt.return (print_endline body)) (fun () -> chat hostname port);;
+
 let start_in_client_mode _ =
   print_endline "What's the socket of the server in the format host:port? (e.g. 'localhost:8080')";
   print_string "> "; flush stdout;
   Client.get_server_socket_from_stdin
-  >>= (fun (hostname, port) ->
-    let startup_message = String.concat " " ["Running in client mode against server at host"; hostname; "on port"; Int.to_string port] in
-    Lwt.return (print_endline startup_message)
-  );;
+  >>= fun (hostname, port) ->
+  let startup_message = String.concat " " ["Running in client mode against server at host"; hostname; "on port"; Int.to_string port] in
+  Lwt.bind (
+    Lwt.return (print_endline startup_message))
+    (fun () -> chat hostname port);;
 
 module Server = struct
   exception MalformedPort of string;;
@@ -68,18 +79,18 @@ let start_in_server_mode _ =
   print_string "> "; flush stdout;
   Server.pick_port_from_stdin ()
   >>= (fun port_number ->
-    let (forever, _) = Http_server.start_server port_number in
-    let startup_message = String.concat " " ["Running in server mode on port"; Int.to_string port_number] in
-    Lwt.bind (
-      Lwt.return (print_endline startup_message))
-      (fun () -> forever))
+  let (forever, _) = Http_server.start_server port_number in
+  let startup_message = String.concat " " ["Running in server mode on port"; Int.to_string port_number] in
+  Lwt.bind (
+    Lwt.return (print_endline startup_message))
+    (fun () -> forever))
 
 let start_one_on_one _ =
   print_endline "Pick a mode ('client' or 'server')";
   print_string "> "; flush stdout;
   Lwt_main.run (pick_session_mode_from_stdin
   >>= (fun mode ->
-    match mode with
-      | Mode.Client -> start_in_client_mode ()
-      | Mode.Server -> start_in_server_mode ()
-    ));;
+  match mode with
+    | Mode.Client -> start_in_client_mode ()
+    | Mode.Server -> start_in_server_mode ()
+  ));;
