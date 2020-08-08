@@ -18,7 +18,7 @@ let echo_get reqd =
   match Reqd.request reqd  with
   | { Request.meth = `GET; _ } ->
     let headers = Headers.of_list ["content-type", "application/json"; "connection", "close"] in
-    Reqd.respond_with_string reqd (Response.create ~headers `OK) "All good mate"
+    Reqd.respond_with_string reqd (Response.create ~headers `OK) "Message receieved"
   | _ ->
     let headers = Headers.of_list [ "connection", "close" ] in
     Reqd.respond_with_string reqd (Response.create ~headers `Method_not_allowed) "";;
