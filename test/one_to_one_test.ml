@@ -55,7 +55,7 @@ let test_start_server_and_hit_it _ =
     Oto.http_get "localhost" port "/"
     >>= fun optional_pair ->
     match optional_pair with
-      | None -> Lwt.fail (OUnitTest.OUnit_failure "Fucked it")
+      | None -> Lwt.fail (OUnitTest.OUnit_failure "Didn't get a valid response")
       | Some _ -> Lwt.return ()
   in
   Oto.run_server_during_lwt_task port call_api;;
