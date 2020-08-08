@@ -23,24 +23,10 @@ let test_read_first_line _ =
 let test_read_first_line_lwt _ =
   assert_equal "This file contains some text" (Lwt_main.run (Oto.read_first_line_lwt "test_file.txt"));;
 
-let assert_options_equal expected actual =
-  let print_endline_option o = match o with
-    | Some data -> print_endline (String.concat " " ["Some"; data])
-    | None -> print_endline "None"
-  in
-  try assert_equal expected actual
-  with e ->
-    Format.eprintf "\nError: %s\n%!" (Caml.Format.sprintf "Exn raised: %s" (Base.Exn.to_string e));
-    print_string "Expected: ";
-    print_endline_option expected;
-    print_string "Actual:   ";
-    print_endline_option actual;
-    raise e;;
-
 let test_last_seven_in_response_body _ =
   let actual = (Lwt_main.run (Oto.last_seven_in_response_body "www.google.com" 80 "/")) in
   let expected = Some "</html>" in
-  assert_options_equal expected actual;;
+  Assertions.assert_options_equal expected actual;;
 
 let test_powers_of_two_and_three _ =
   let (square, cube) = Oto.powers_of_two_and_three 3 in
@@ -66,6 +52,11 @@ let test_pick_session_mode _ =
   assert_equal Oto.Mode.Server (simulate_pick_session_mode "server");
   assert_raises (Oto.Mode.Unrecognised "Unrecognised mode: nonsense") (fun() -> simulate_pick_session_mode "nonsense")
 
+let test_client_requests_server_socket _ =
+  let simulate_get_server_socket user_input = (Lwt_main.run (Oto.Client.get_server_socket user_input)) in
+  Assertions.assert_socket_pair_equal ("localhost", 8080) (simulate_get_server_socket "localhost:8080");
+  Assertions.assert_socket_pair_equal ("www.my-ec2-instance.com", 8081) (simulate_get_server_socket "www.my-ec2-instance.com:8081")
+
 let suite =
   "OneToOneTest" >::: [
     "test_average" >:: test_average;
@@ -77,7 +68,8 @@ let suite =
     "test_last_seven_in_response_body" >:: test_last_seven_in_response_body;
     "test_powers_of_two_and_three" >:: test_powers_of_two_and_three;
     "test_start_server_and_hit_it" >:: test_start_server_and_hit_it;
-    "test_pick_session_mode" >:: test_pick_session_mode
+    "test_pick_session_mode" >:: test_pick_session_mode;
+    "test_client_requests_server_socket" >:: test_client_requests_server_socket
   ];;
 
 run_test_tt_main suite

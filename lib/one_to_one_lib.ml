@@ -82,3 +82,8 @@ let pick_session_mode_from_stdin =
 let start_in_client_mode _ = Lwt.return (print_endline "Running in client mode");;
 
 let start_in_server_mode _ = Lwt.return (print_endline "Running in server mode");;
+
+module Client = struct
+  let get_server_socket _ =
+    Lwt.return ("localhost", 8081);;
+end;;
