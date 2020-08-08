@@ -60,12 +60,3 @@ let http_get hostname port_number request_path =
       | Some body -> match !response_reference with
           | None -> Lwt.return None
           | Some r -> Lwt.return (Some (r, body)));;
-
-let last_seven_in_response_body hostname port_number request_path =
-  http_get hostname port_number request_path
-  >>= fun r -> match r with
-    | None -> Lwt.return None
-    | Some (_, body) ->
-      let last_seven_chars_in_response_body response_body_string =
-        String.sub response_body_string (-7 + String.length response_body_string) 7 in
-      Lwt.return (Some (last_seven_chars_in_response_body body));;

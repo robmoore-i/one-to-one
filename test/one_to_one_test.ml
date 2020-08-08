@@ -2,36 +2,19 @@ open OUnit2;;
 open Lwt.Infix
 module Oto = One_to_one_lib;;
 
-let test_average _ =
-  assert_equal 2.5 (Oto.average 2.0 3.0);;
-
-let test_square_plus_one _ =
-  assert_equal 5 (Oto.square_plus_one 2);;
-
-let test_cube_plus_one _ =
-  assert_equal 9 (Oto.cube_plus_one 2);;
-
-let test_first_times_last _ =
-  assert_equal 0 (Oto.first_times_last []);
-  assert_equal 0 (Oto.first_times_last [2]);
-  assert_equal 6 (Oto.first_times_last [2; 3]);
-  assert_equal 21 (Oto.first_times_last [3; 5; 7]);;
-
-let test_read_first_line _ =
-  assert_equal "This file contains some text" (Oto.read_first_line "test_file.txt");;
-
-let test_read_first_line_lwt _ =
-  assert_equal "This file contains some text" (Lwt_main.run (Oto.read_first_line_lwt "test_file.txt"));;
-
-let test_last_seven_in_response_body _ =
-  let actual = (Lwt_main.run (Oto.last_seven_in_response_body "www.google.com" 80 "/")) in
+let test_http_get _ =
+  let last_seven_in_response_body hostname port_number request_path =
+    Oto.http_get hostname port_number request_path
+    >>= fun r -> match r with
+      | None -> Lwt.return None
+      | Some (_, body) ->
+        let last_seven_chars_in_response_body response_body_string =
+          String.sub response_body_string (-7 + String.length response_body_string) 7 in
+        Lwt.return (Some (last_seven_chars_in_response_body body))
+  in
+  let actual = (Lwt_main.run (last_seven_in_response_body "www.google.com" 80 "/")) in
   let expected = Some "</html>" in
   Assertions.assert_options_equal expected actual;;
-
-let test_powers_of_two_and_three _ =
-  let (square, cube) = Oto.powers_of_two_and_three 3 in
-  assert_equal 9 square;
-  assert_equal 27 cube;;
 
 let test_start_server_and_hit_it _ =
   let port = 8080 in
@@ -62,14 +45,7 @@ let test_client_requests_server_socket _ =
 
 let suite =
   "OneToOneTest" >::: [
-    "test_average" >:: test_average;
-    "test_square_plus_one" >:: test_square_plus_one;
-    "test_cube_plus_one" >:: test_cube_plus_one;
-    "test_first_times_last" >:: test_first_times_last;
-    "test_read_first_line" >:: test_read_first_line;
-    "test_read_first_line_lwt" >:: test_read_first_line_lwt;
-    "test_last_seven_in_response_body" >:: test_last_seven_in_response_body;
-    "test_powers_of_two_and_three" >:: test_powers_of_two_and_three;
+    "test_http_get" >:: test_http_get;
     "test_start_server_and_hit_it" >:: test_start_server_and_hit_it;
     "test_pick_session_mode" >:: test_pick_session_mode;
     "test_client_requests_server_socket" >:: test_client_requests_server_socket
