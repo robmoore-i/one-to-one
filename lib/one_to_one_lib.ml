@@ -78,3 +78,7 @@ let pick_session_mode mode_promise =
 let pick_session_mode_from_stdin =
   let mode_promise = Lwt_io.read_line Lwt_io.stdin in
   pick_session_mode mode_promise;;
+
+let start_in_client_mode _ = Lwt.return (print_endline "Running in client mode");;
+
+let start_in_server_mode _ = Lwt.return (print_endline "Running in server mode");;
