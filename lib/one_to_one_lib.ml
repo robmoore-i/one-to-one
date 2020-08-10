@@ -91,7 +91,10 @@ module Server = struct
   let nth_user_input user_input_promises i =
     match List.nth_opt user_input_promises i with
       | Some p -> p
-      | None -> Lwt.return (input_line stdin)
+      | None ->
+        match i with
+          | 0 -> Lwt.return (input_line stdin)
+          | _ -> Lwt_io.read_line Lwt_io.stdin;;
 
   let rec chat log user_input_promises i =
     (nth_user_input user_input_promises i)
@@ -105,11 +108,10 @@ module Server = struct
     log "Which port should this server run on? (e.g. '8081')\n> ";
     pick_port (nth_user_input user_input_promises 0)
     >>= fun port_number ->
-    let forever, _ = Lwt.task () in
     let _server_reference_promise = Http_server.start_server port_number chat_req_handler in
     let startup_message = String.concat " " ["Running in server mode on port"; Int.to_string port_number;"\n"] in
     log startup_message;
-    forever
+    chat log user_input_promises 1;;
 end;;
 
 let start_one_on_one _ =
