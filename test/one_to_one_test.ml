@@ -49,13 +49,21 @@ let test_server_requests_port_to_run_on _ =
   assert_raises (Oto.Server.MalformedPort "Couldn't parse port number from: nonsense")
     (fun() -> simulate_get_server_port "nonsense");;
 
+exception Timeout of string;;
+
+let test_server_exits_after_user_types_exit _ =
+  let server_run = Oto.Server.run_with_user_input [Lwt.return "8081"; Lwt.return "exit"] in
+  let timeout = Lwt.bind (Lwt_unix.sleep 0.5) (fun () -> Lwt.fail (Timeout "Server didn't start and then exit based on user input")) in
+  Lwt_main.run (Lwt.pick [server_run; timeout]);;
+
 let suite =
   "OneToOneTest" >::: [
     "test_http_get" >:: test_http_get;
     "test_start_server_and_hit_it" >:: test_start_server_and_hit_it;
     "test_pick_session_mode" >:: test_pick_session_mode;
     "test_client_requests_server_socket" >:: test_client_requests_server_socket;
-    "test_server_requests_port_to_run_on" >:: test_server_requests_port_to_run_on
+    "test_server_requests_port_to_run_on" >:: test_server_requests_port_to_run_on;
+    "test_server_exits_after_user_types_exit" >:: test_server_exits_after_user_types_exit
   ];;
 
 run_test_tt_main suite
