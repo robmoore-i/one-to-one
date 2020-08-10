@@ -99,7 +99,8 @@ module Server = struct
     >>= fun user_input ->
     if user_input = "exit"
     then Lwt.return (log "Exiting\n")
-    else chat log user_input_promises (i + 1);;
+    else
+    chat log user_input_promises (i + 1);;
 
   let run_with_user_input user_input_promises log =
     log "Which port should this server run on? (e.g. '8081')\n> ";
