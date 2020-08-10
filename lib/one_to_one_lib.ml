@@ -86,35 +86,30 @@ module Server = struct
       let headers = Headers.of_list [ "connection", "close" ] in
       Reqd.respond_with_string reqd (Response.create ~headers `Method_not_allowed) "";;
 
-  let rec chat user_input_promise =
-    user_input_promise
+  (* If custom input is provided (i.e. in a test) then use that. Otherwise, just read from stdin *)
+  let nth_user_input user_input_promises i =
+    match List.nth_opt user_input_promises i with
+      | Some p -> p
+      | None -> Lwt.return (input_line stdin)
+
+  let rec chat user_input_promises i =
+    (nth_user_input user_input_promises i)
     >>= fun user_input ->
     if user_input = "exit"
     then Lwt.return (print_endline "Exiting")
-    else chat user_input_promise;;
+    else chat user_input_promises (i + 1);;
 
   let run_with_user_input user_input_promises =
-    print_endline "Which port should this server run on? (e.g. '8081')";
-    print_string "> "; flush stdout;
-    pick_port (List.nth user_input_promises 0)
+    print_string "Which port should this server run on? (e.g. '8081')\n> "; flush stdout;
+    pick_port (nth_user_input user_input_promises 0)
     >>= fun port_number ->
     let server_reference_promise = Http_server.start_server port_number chat_req_handler in
-    let startup_message = String.concat " " ["Running in server mode on port"; Int.to_string port_number] in
-    Lwt.bind server_reference_promise (fun _ -> Lwt.return (print_endline startup_message))
+    server_reference_promise
+    >>= fun _ ->
+    let startup_message = String.concat " " ["Running in server mode on port"; Int.to_string port_number;"\n"] in
+    Lwt.return (print_string startup_message; flush stdout)
     >>= fun () ->
-    chat (List.nth user_input_promises 1);;
-
-  let start _ =
-    print_endline "Which port should this server run on? (e.g. '8081')";
-    print_string "> "; flush stdout;
-    pick_port_from_stdin ()
-    >>= fun port_number ->
-    let server_reference_promise = Http_server.start_server port_number chat_req_handler in
-    let startup_message = String.concat " " ["Running in server mode on port"; Int.to_string port_number] in
-    Lwt.bind server_reference_promise (fun _ -> Lwt.return (print_endline startup_message))
-    >>= fun () ->
-    let forever, _ = Lwt.wait () in
-    forever;;
+    chat user_input_promises 1;;
 end;;
 
 let start_one_on_one _ =
@@ -124,5 +119,5 @@ let start_one_on_one _ =
   >>= (fun mode ->
   match mode with
     | Mode.Client -> Client.start ()
-    | Mode.Server -> Server.start ()
+    | Mode.Server -> Server.run_with_user_input []
   ));;
