@@ -26,17 +26,6 @@ module Mode = struct
   let pick_from_stdin = pick (Lwt_io.read_line Lwt_io.stdin);;
 end;;
 
-exception ResponseNotReceived of string;;
-
-let rec chat hostname port =
-  print_string "> "; flush stdout;
-  Lwt_io.read_line Lwt_io.stdin
-  >>= fun message ->
-  http_get hostname port (String.concat "=" ["/message?content"; message])
-  >>= fun optional_response -> match optional_response with
-    | None -> Lwt.fail (ResponseNotReceived "Didn't get an acknowledgement from chat partner")
-    | Some (_, body) -> Lwt.bind (Lwt.return (print_endline body)) (fun () -> chat hostname port);;
-
 module Client = struct
   exception MalformedSocket of string;;
 
@@ -48,6 +37,17 @@ module Client = struct
         | _ -> Lwt.fail (MalformedSocket (String.concat " " ["Couldn't parse hostname and port number from:"; user_input])));;
 
   let get_server_socket_from_stdin = get_server_socket (Lwt_io.read_line Lwt_io.stdin);;
+
+  exception ResponseNotReceived of string;;
+
+  let rec chat hostname port =
+    print_string "> "; flush stdout;
+    Lwt_io.read_line Lwt_io.stdin
+    >>= fun message ->
+    http_get hostname port (String.concat "=" ["/message?content"; message])
+    >>= fun optional_response -> match optional_response with
+      | None -> Lwt.fail (ResponseNotReceived "Didn't get an acknowledgement from chat partner")
+      | Some (_, body) -> Lwt.bind (Lwt.return (print_endline body)) (fun () -> chat hostname port);;
 
   let start _ =
     print_endline "What's the socket of the server in the format host:port? (e.g. 'localhost:8080')";
@@ -86,16 +86,35 @@ module Server = struct
       let headers = Headers.of_list [ "connection", "close" ] in
       Reqd.respond_with_string reqd (Response.create ~headers `Method_not_allowed) "";;
 
+  let rec chat user_input_promise =
+    user_input_promise
+    >>= fun user_input ->
+    if user_input = "exit"
+    then Lwt.return (print_endline "Exiting")
+    else chat user_input_promise;;
+
+  let run_with_user_input user_input_promises =
+    print_endline "Which port should this server run on? (e.g. '8081')";
+    print_string "> "; flush stdout;
+    pick_port (List.nth user_input_promises 0)
+    >>= fun port_number ->
+    let server_reference_promise = Http_server.start_server port_number chat_req_handler in
+    let startup_message = String.concat " " ["Running in server mode on port"; Int.to_string port_number] in
+    Lwt.bind server_reference_promise (fun _ -> Lwt.return (print_endline startup_message))
+    >>= fun () ->
+    chat (List.nth user_input_promises 1);;
+
   let start _ =
     print_endline "Which port should this server run on? (e.g. '8081')";
     print_string "> "; flush stdout;
     pick_port_from_stdin ()
-    >>= (fun port_number ->
-    let (forever, _) = Http_server.start_server port_number chat_req_handler in
+    >>= fun port_number ->
+    let server_reference_promise = Http_server.start_server port_number chat_req_handler in
     let startup_message = String.concat " " ["Running in server mode on port"; Int.to_string port_number] in
-    Lwt.bind (
-      Lwt.return (print_endline startup_message))
-      (fun () -> forever));;
+    Lwt.bind server_reference_promise (fun _ -> Lwt.return (print_endline startup_message))
+    >>= fun () ->
+    let forever, _ = Lwt.wait () in
+    forever;;
 end;;
 
 let start_one_on_one _ =

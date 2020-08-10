@@ -20,27 +20,31 @@ let start_server port req_handler  =
   let error_handler (_ : Unix.sockaddr) = default_error_handler in
   let server_reference = ref None in
   let assign_to_server_reference s = server_reference := Some s in
-  Lwt.async (fun () ->
-    Lwt_io.establish_server_with_client_socket
-      listen_address
-      (Server.create_connection_handler ~request_handler ~error_handler)
-    >|= fun (server : Lwt_io.server) ->
-      assign_to_server_reference server;
-      (* For debugging:
-         print_string "Listening on port ";
-         print_endline (Int.to_string port)
-      *)
-      );
-  let forever, _ = Lwt.wait () in
-  (forever, server_reference);;
+  Lwt_io.establish_server_with_client_socket
+    listen_address
+    (Server.create_connection_handler ~request_handler ~error_handler)
+  >|= fun (server : Lwt_io.server) ->
+    assign_to_server_reference server;
+    (* For debugging:
+       print_string "Listening on port ";
+       print_endline (Int.to_string port)
+    *)
+  >>= fun _ ->
+  Lwt.return server_reference;;
 
 let run_server_forever port req_handler =
-  let (forever, _) = start_server port req_handler in
-  Lwt_main.run forever;;
+  let forever, _ = Lwt.wait () in
+  let server_reference_promise = start_server port req_handler in
+  Lwt_main.run (server_reference_promise
+  >>= fun _ ->
+  forever);;
 
 let run_server_during_lwt_task port req_handler lwt_task =
-  let (forever, server_reference) = start_server port req_handler in
-  Lwt_main.run (Lwt.bind (Lwt.pick [forever; lwt_task]) (fun () ->
+  let forever, _ = Lwt.wait () in
+  let server_reference_promise = start_server port req_handler in
+  Lwt_main.run (server_reference_promise
+  >>= fun server_reference ->
+  Lwt.bind (Lwt.pick [forever; lwt_task]) (fun () ->
     match !server_reference with
       | None -> Lwt.return (print_endline "Something broke")
       | Some reference -> Lwt_io.shutdown_server reference));;
