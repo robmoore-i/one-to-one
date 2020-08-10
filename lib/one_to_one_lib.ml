@@ -95,8 +95,9 @@ module Server = struct
      first input, which is a buggy, unpleasant experience. I don't have an
      explanation for why Lwt behaves in this way. At the same time however,
      using the blocking console read causes the server (which should really be
-     running in a different thread) to stop serving requests. This collection
-     of odd library behaviour is the cause for this odd code.
+     running in a different thread) to stop serving requests. Empirically, I've
+     found that the below usage arrangement provides the expected user
+     experience.
   *)
   let nth_user_input user_input_promises i =
     match List.nth_opt user_input_promises i with
