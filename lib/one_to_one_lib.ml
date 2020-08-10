@@ -87,7 +87,17 @@ module Server = struct
       let headers = Headers.of_list [ "connection", "close" ] in
       Reqd.respond_with_string reqd (Response.create ~headers `Method_not_allowed) "";;
 
-  (* If custom input is provided (i.e. in a test) then use that. Otherwise, just read from stdin *)
+  (* If custom input is provided (i.e. in a test or from some other input
+     source) then use that. Otherwise, read input from stdin.
+
+     You'll notice this function reads from stdin in two ways. This is because
+     for the first read, I've found that using the Lwt function ignores the
+     first input, which is a buggy, unpleasant experience. I don't have an
+     explanation for why Lwt behaves in this way. At the same time however,
+     using the blocking console read causes the server (which should really be
+     running in a different thread) to stop serving requests. This collection
+     of odd library behaviour is the cause for this odd code.
+  *)
   let nth_user_input user_input_promises i =
     match List.nth_opt user_input_promises i with
       | Some p -> p
