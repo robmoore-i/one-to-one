@@ -24,11 +24,11 @@ let start_server port req_handler  =
     listen_address
     (Server.create_connection_handler ~request_handler ~error_handler)
   >|= fun (server : Lwt_io.server) ->
-    assign_to_server_reference server;
-    (* For debugging:
-       print_string "Listening on port ";
-       print_endline (Int.to_string port)
-    *)
+  assign_to_server_reference server;
+  (* For debugging:
+     print_string "Listening on port ";
+     print_endline (Int.to_string port)
+  *)
   >>= fun _ ->
   Lwt.return server_reference;;
 
