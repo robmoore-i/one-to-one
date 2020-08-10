@@ -51,8 +51,10 @@ let test_server_requests_port_to_run_on _ =
 
 exception Timeout of string;;
 
+let dummy_log _ = ();;
+
 let test_server_exits_after_user_types_exit _ =
-  let server_run = Oto.Server.run_with_user_input [Lwt.return "8081"; Lwt.return "exit"] in
+  let server_run = Oto.Server.run_with_user_input [Lwt.return "8081"; Lwt.return "exit"] dummy_log in
   let timeout = Lwt.bind (Lwt_unix.sleep 0.5) (fun () -> Lwt.fail (Timeout "Server didn't start and then exit based on user input")) in
   Lwt_main.run (Lwt.pick [server_run; timeout]);;
 

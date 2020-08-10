@@ -5,6 +5,8 @@ let http_get = Http_client.http_get;;
 
 let run_server_during_lwt_task = Http_server.run_server_during_lwt_task;;
 
+let default_log s = print_string s; flush stdout
+
 module Mode = struct
   type mode =
   | Client
@@ -92,24 +94,24 @@ module Server = struct
       | Some p -> p
       | None -> Lwt.return (input_line stdin)
 
-  let rec chat user_input_promises i =
+  let rec chat log user_input_promises i =
     (nth_user_input user_input_promises i)
     >>= fun user_input ->
     if user_input = "exit"
-    then Lwt.return (print_endline "Exiting")
-    else chat user_input_promises (i + 1);;
+    then Lwt.return (log "Exiting\n")
+    else chat log user_input_promises (i + 1);;
 
-  let run_with_user_input user_input_promises =
-    print_string "Which port should this server run on? (e.g. '8081')\n> "; flush stdout;
+  let run_with_user_input user_input_promises log =
+    log "Which port should this server run on? (e.g. '8081')\n> ";
     pick_port (nth_user_input user_input_promises 0)
     >>= fun port_number ->
     let server_reference_promise = Http_server.start_server port_number chat_req_handler in
     server_reference_promise
     >>= fun _ ->
     let startup_message = String.concat " " ["Running in server mode on port"; Int.to_string port_number;"\n"] in
-    Lwt.return (print_string startup_message; flush stdout)
+    Lwt.return (log startup_message)
     >>= fun () ->
-    chat user_input_promises 1;;
+    chat log user_input_promises 1;;
 end;;
 
 let start_one_on_one _ =
@@ -119,5 +121,5 @@ let start_one_on_one _ =
   >>= (fun mode ->
   match mode with
     | Mode.Client -> Client.start ()
-    | Mode.Server -> Server.run_with_user_input []
+    | Mode.Server -> Server.run_with_user_input [] default_log
   ));;
