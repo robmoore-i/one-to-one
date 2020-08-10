@@ -49,16 +49,15 @@ module Client = struct
     http_get hostname port (String.concat "=" ["/message?content"; message])
     >>= fun optional_response -> match optional_response with
       | None -> Lwt.fail (ResponseNotReceived "Didn't get an acknowledgement from chat partner")
-      | Some (_, body) -> Lwt.bind (Lwt.return (print_endline body)) (fun () -> chat hostname port);;
+      | Some (_, body) -> Lwt.bind (Lwt.return (default_log (String.concat "" [body; "\n"]))) (fun () -> chat hostname port);;
 
   let start _ =
-    print_endline "What's the socket of the server in the format host:port? (e.g. 'localhost:8080')";
-    print_string "> "; flush stdout;
+    default_log "What's the socket of the server in the format host:port? (e.g. 'localhost:8080')\n> ";
     get_server_socket_from_stdin
     >>= fun (hostname, port) ->
-    let startup_message = String.concat " " ["Running in client mode against server at host"; hostname; "on port"; Int.to_string port] in
+    let startup_message = String.concat " " ["Running in client mode against server at host"; hostname; "on port"; Int.to_string port; "\n"] in
     Lwt.bind (
-      Lwt.return (print_endline startup_message))
+      Lwt.return (default_log startup_message))
       (fun () -> chat hostname port);;
 end;;
 
@@ -106,18 +105,15 @@ module Server = struct
     log "Which port should this server run on? (e.g. '8081')\n> ";
     pick_port (nth_user_input user_input_promises 0)
     >>= fun port_number ->
-    let server_reference_promise = Http_server.start_server port_number chat_req_handler in
-    server_reference_promise
-    >>= fun _ ->
+    let forever, _ = Lwt.task () in
+    let _server_reference_promise = Http_server.start_server port_number chat_req_handler in
     let startup_message = String.concat " " ["Running in server mode on port"; Int.to_string port_number;"\n"] in
-    Lwt.return (log startup_message)
-    >>= fun () ->
-    chat log user_input_promises 1;;
+    log startup_message;
+    forever
 end;;
 
 let start_one_on_one _ =
-  print_endline "Pick a mode ('client' or 'server')";
-  print_string "> "; flush stdout;
+  default_log "Pick a mode ('client' or 'server')\n> ";
   Lwt_main.run (Mode.pick_from_stdin
   >>= (fun mode ->
   match mode with

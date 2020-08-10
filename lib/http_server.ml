@@ -47,7 +47,9 @@ let run_server_during_lwt_task port req_handler lwt_task =
   Lwt.bind (Lwt.pick [forever; lwt_task]) (fun () ->
     match !server_reference with
       | None -> Lwt.return (print_endline "Something broke")
-      | Some reference -> Lwt_io.shutdown_server reference));;
+      | Some reference ->
+        (*print_endline "Shutting down";*)
+        Lwt_io.shutdown_server reference));;
 
 let run_server_for_n_seconds port req_handler seconds =
   run_server_during_lwt_task port req_handler (Lwt_unix.sleep seconds);;
