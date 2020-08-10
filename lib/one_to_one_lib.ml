@@ -102,7 +102,7 @@ module Server = struct
     else
     chat log user_input_promises (i + 1);;
 
-  let run_with_user_input user_input_promises log =
+  let run user_input_promises log =
     log "Which port should this server run on? (e.g. '8081')\n> ";
     pick_port (nth_user_input user_input_promises 0)
     >>= fun port_number ->
@@ -122,5 +122,5 @@ let start_one_on_one _ =
   >>= (fun mode ->
   match mode with
     | Mode.Client -> Client.start ()
-    | Mode.Server -> Server.run_with_user_input [] default_log
+    | Mode.Server -> Server.run [] default_log
   ));;
