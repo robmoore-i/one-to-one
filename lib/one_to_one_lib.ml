@@ -42,23 +42,30 @@ module Client = struct
 
   exception ResponseNotReceived of string;;
 
-  let rec chat hostname port =
+  let http_chat_msg_sender hostname port msg =
+    http_get hostname port (String.concat "=" ["/message?content"; msg])
+    >>= fun optional_response -> match optional_response with
+      | None -> Lwt.fail (ResponseNotReceived "Didn't get an acknowledgement from chat partner")
+      | Some (_, body) -> Lwt.return (String.concat "" [body; "\n"]);;
+
+  let rec chat send_msg =
     print_string "> "; flush stdout;
     Lwt_io.read_line Lwt_io.stdin
     >>= fun message ->
-    http_get hostname port (String.concat "=" ["/message?content"; message])
-    >>= fun optional_response -> match optional_response with
-      | None -> Lwt.fail (ResponseNotReceived "Didn't get an acknowledgement from chat partner")
-      | Some (_, body) -> Lwt.bind (Lwt.return (default_log (String.concat "" [body; "\n"]))) (fun () -> chat hostname port);;
+    send_msg message
+    >>= fun acknowledgement_msg ->
+    default_log acknowledgement_msg;
+    chat send_msg;;
 
   let start _ =
     default_log "What's the socket of the server in the format host:port? (e.g. 'localhost:8080')\n> ";
     get_server_socket_from_stdin
     >>= fun (hostname, port) ->
+    let send_msg = http_chat_msg_sender hostname port in
     let startup_message = String.concat " " ["Running in client mode against server at host"; hostname; "on port"; Int.to_string port; "\n"] in
     Lwt.bind (
       Lwt.return (default_log startup_message))
-      (fun () -> chat hostname port);;
+      (fun () -> chat send_msg);;
 end;;
 
 module Server = struct
