@@ -29,7 +29,7 @@ let test_client_requests_server_socket _ =
   let simulate_get_server_socket user_input = (Lwt_main.run (Oto.Client.get_server_socket (Lwt.return user_input))) in
   Assertions.assert_socket_pair_equal ("localhost", 8080) (simulate_get_server_socket "localhost:8080");
   Assertions.assert_socket_pair_equal ("www.my-ec2-instance.com", 8081) (simulate_get_server_socket "www.my-ec2-instance.com:8081");
-  assert_raises (Oto.Client.MalformedSocket "Couldn't parse hostname and port number from: nonsense")
+  assert_raises (Oto.MalformedSocket "Couldn't parse hostname and port number from: nonsense")
     (fun() -> simulate_get_server_socket "nonsense");;
 
 let test_server_requests_port_to_run_on _ =
@@ -40,18 +40,19 @@ let test_server_requests_port_to_run_on _ =
 
 exception Timeout of string;;
 
-let dummy_msg_sender _hostname _port msg = Lwt.return (String.concat " " ["Sent"; msg]);;
+let dummy_client_msg_sender _client_port _server_hostname _server_port msg = Lwt.return (String.concat " " ["Sent by client:"; msg]);;
+let dummy_server_msg_sender _client_hostname _client_port msg = Lwt.return (String.concat " " ["Sent by server:"; msg]);;
 
 let test_server_exits_after_user_types_slash_exit _ =
   let simulated_user_input = [Lwt.return "8081"; Lwt.return ""; Lwt.return "/exit"] in
-  let server_run = Oto.Server.run dummy_log simulated_user_input dummy_msg_sender in
+  let server_run = Oto.Server.run dummy_log simulated_user_input dummy_server_msg_sender in
   let timeout = Lwt.bind (Lwt_unix.sleep 0.5) (fun () -> Lwt.fail (Timeout "Server didn't exit based on user input")) in
   Lwt_main.run (Lwt.pick [server_run; timeout]);;
 
 let test_client_exits_after_user_types_slash_exit _ =
   let port_determiner _ = 50505 in
   let simulated_user_input = [Lwt.return "localhost:8081"; Lwt.return ""; Lwt.return "/exit"] in
-  let client_run = Oto.Client.run dummy_log simulated_user_input dummy_msg_sender port_determiner in
+  let client_run = Oto.Client.run dummy_log simulated_user_input dummy_client_msg_sender port_determiner in
   let timeout = Lwt.bind (Lwt_unix.sleep 1.0) (fun () -> Lwt.fail (Timeout "Client didn't exit based on user input")) in
   Lwt_main.run (Lwt.pick [client_run; timeout]);;
 
@@ -70,14 +71,19 @@ let test_client_starts_server_on_determined_port _ =
       | Some _ -> Lwt.return ()
   in
   let simulated_user_input = [Lwt.return "localhost:8081"; Lwt.return ""; do_after 1.0 (Lwt.return "/exit")] in
-  let client_run = Oto.Client.run dummy_log simulated_user_input dummy_msg_sender port_determiner in
+  let client_run = Oto.Client.run dummy_log simulated_user_input dummy_client_msg_sender port_determiner in
   Lwt_main.run (Lwt.join [client_run; send_message_to_client]);;
+
+let test_http_target_parser _ =
+  assert_equal ("hello", "localhost", 9091) (Oto.Server.parse_http_target "/message?content=hello&reply_socket=localhost:9091");
+  assert_equal ("you?", "localhost", 9091) (Oto.Server.parse_http_target "/message?content=you?&reply_socket=localhost:9091");
+  assert_equal ("nonsense&reply_socket=confused.com:80", "localhost", 9091) (Oto.Server.parse_http_target "/message?content=nonsense&reply_socket=confused.com:80&reply_socket=localhost:9091");;
 
 let test_back_and_forth_message_exchange _ =
   (* The server starts up on port 9090, and after 4 seconds, the user types "hello, client" into the REPL. *)
   let server_port = 9090 in
   let simulated_server_input = [Lwt.return (Int.to_string server_port); Lwt.return ""; do_after 4.0 (Lwt.return "hello, client"); do_after 1.0 (Lwt.return "/exit")] in
-  let server_run = Oto.Server.run dummy_log simulated_server_input dummy_msg_sender in
+  let server_run = Oto.Server.run dummy_log simulated_server_input Oto.Server.http_chat_msg_sender in
   (* The client starts up on port 9091, and after 2 seconds, the user types "hello, server" into the REPL. *)
   let client_port = 9091 in
   let client_port_determiner _ = client_port in
@@ -95,6 +101,7 @@ let suite =
     "test_server_exits_after_user_types_slash_exit" >:: test_server_exits_after_user_types_slash_exit;
     "test_client_exits_after_user_types_slash_exit" >:: test_client_exits_after_user_types_slash_exit;
     "test_client_starts_server_on_determined_port" >:: test_client_starts_server_on_determined_port;
+    "test_http_target_parser" >:: test_http_target_parser;
 (*    "test_back_and_forth_message_exchange" >:: test_back_and_forth_message_exchange*)
   ];;
 

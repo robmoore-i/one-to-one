@@ -1,4 +1,4 @@
 (library
  (name one_to_one_lib)
  (public_name one_to_one_lib)
- (libraries base lwt lwt.unix httpaf httpaf-lwt-unix))
+ (libraries base str lwt lwt.unix httpaf httpaf-lwt-unix))
