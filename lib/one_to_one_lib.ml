@@ -3,8 +3,6 @@ open Lwt.Infix
 
 let http_get = Http_client.http_get;;
 
-let run_server_during_lwt_task = Http_server.run_server_during_lwt_task;;
-
 let default_log s = print_string s; flush stdout
 
 (* If custom input is provided (i.e. in a test or from some other input

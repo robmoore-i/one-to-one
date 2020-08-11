@@ -18,19 +18,6 @@ let test_http_get _ =
 
 let dummy_log _ = ();;
 
-let test_start_server_and_hit_it _ =
-  let port = 8080 in
-  let call_api =
-    Lwt_unix.sleep 0.5
-    >>= fun () ->
-    Oto.http_get "localhost" port "/"
-    >>= fun optional_pair ->
-    match optional_pair with
-      | None -> Lwt.fail (OUnitTest.OUnit_failure "Didn't get a valid response")
-      | Some _ -> Lwt.return ()
-  in
-  Oto.run_server_during_lwt_task port (Oto.chat_http_request_handler dummy_log) call_api;;
-
 let test_pick_session_mode _ =
   let simulate_pick_session_mode user_input = (Lwt_main.run (Oto.Mode.pick (Lwt.return user_input))) in
   assert_equal Oto.Mode.Client (simulate_pick_session_mode "client");
@@ -63,7 +50,7 @@ let dummy_message_sender _hostname _port msg = Lwt.return (String.concat " " ["S
 let test_client_exits_after_user_types_slash_exit _ =
   let port_determiner _ = 50505 in
   let simulated_user_input = [Lwt.return "localhost:8081"; Lwt.return ""; Lwt.return "/exit"] in
-  let client_run = Oto.Client.run simulated_user_input Oto.default_log dummy_message_sender port_determiner in
+  let client_run = Oto.Client.run simulated_user_input dummy_log dummy_message_sender port_determiner in
   let timeout = Lwt.bind (Lwt_unix.sleep 1.0) (fun () -> Lwt.fail (Timeout "Client didn't exit based on user input")) in
   Lwt_main.run (Lwt.pick [client_run; timeout]);;
 
@@ -86,7 +73,6 @@ let test_client_starts_server_on_determined_port _ =
 let suite =
   "OneToOneTest" >::: [
     "test_http_get" >:: test_http_get;
-    "test_start_server_and_hit_it" >:: test_start_server_and_hit_it;
     "test_pick_session_mode" >:: test_pick_session_mode;
     "test_client_requests_server_socket" >:: test_client_requests_server_socket;
     "test_server_requests_port_to_run_on" >:: test_server_requests_port_to_run_on;
