@@ -25,6 +25,9 @@ let nth_user_input user_input_promises i =
     | None ->
       match i with
         | 0 -> Lwt.return (input_line stdin)
+        | 1 ->
+          default_log "Press enter to continue > ";
+          Lwt_io.read_line Lwt_io.stdin
         | _ -> Lwt_io.read_line Lwt_io.stdin;;
 
 module Mode = struct
@@ -47,6 +50,18 @@ module Mode = struct
 
   let pick_from_stdin = pick (Lwt_io.read_line Lwt_io.stdin);;
 end;;
+
+let chat_http_request_handler log reqd =
+  match Reqd.request reqd  with
+  | { Request.meth = `GET; target; _ } ->
+    let headers = Headers.of_list ["content-type", "application/json"; "connection", "close"] in
+    let target_expected_prefix_length = String.length "/message?content=" in
+    let message_content = String.sub target target_expected_prefix_length ((String.length target) - target_expected_prefix_length) in
+    log (String.concat " " ["> >"; message_content; "\n"]);
+    Reqd.respond_with_string reqd (Response.create ~headers `OK) "confirmed"
+  | _ ->
+    let headers = Headers.of_list [ "connection", "close" ] in
+    Reqd.respond_with_string reqd (Response.create ~headers `Method_not_allowed) "";;
 
 module Client = struct
   exception MalformedSocket of string;;
@@ -82,15 +97,17 @@ module Client = struct
       log acknowledgement_msg;
       chat log user_input_promises (i + 1) send_msg);;
 
-  let run user_input_promises log chat_msg_sender =
+  let run user_input_promises log chat_msg_sender port_determiner =
     log "What's the socket of the server in the format host:port? (e.g. 'localhost:8080')\n> ";
     get_server_socket (nth_user_input user_input_promises 0)
     >>= fun (hostname, port) ->
+    let server_reference_promise = Http_server.start_server (port_determiner ()) (chat_http_request_handler log) in
     let send_msg = chat_msg_sender hostname port in
-    let startup_message = String.concat " " ["Running in client mode against server at host"; hostname; "on port"; Int.to_string port; "\nPress enter twice to confirm connection to server.\n"] in
-    Lwt.bind (
-      Lwt.return (log startup_message))
-      (fun () -> chat log user_input_promises 1 send_msg);;
+    let startup_message = String.concat " " ["Running in client mode against server at host"; hostname; "on port"; Int.to_string port; "\n"] in
+    log startup_message;
+    Http_server.schedule_server_shutdown
+      (chat log user_input_promises 1 send_msg)
+      server_reference_promise;;
 end;;
 
 module Server = struct
@@ -108,17 +125,6 @@ module Server = struct
 
   let pick_port_from_stdin _ = pick_port (Lwt.return (input_line stdin));;
 
-  let chat_req_handler reqd =
-    match Reqd.request reqd  with
-    | { Request.meth = `GET; target; _ } ->
-      let headers = Headers.of_list ["content-type", "application/json"; "connection", "close"] in
-      let target_expected_prefix_length = String.length "/message?content=" in
-      print_endline (String.concat " " ["> >"; (String.sub target target_expected_prefix_length ((String.length target) - target_expected_prefix_length))]);
-      Reqd.respond_with_string reqd (Response.create ~headers `OK) "confirmed"
-    | _ ->
-      let headers = Headers.of_list [ "connection", "close" ] in
-      Reqd.respond_with_string reqd (Response.create ~headers `Method_not_allowed) "";;
-
   let rec chat log user_input_promises i =
     nth_user_input user_input_promises i
     >>= fun user_input ->
@@ -131,17 +137,21 @@ module Server = struct
     log "Which port should this server run on? (e.g. '8081')\n> ";
     pick_port (nth_user_input user_input_promises 0)
     >>= fun port_number ->
-    let _server_reference_promise = Http_server.start_server port_number chat_req_handler in
-    let startup_message = String.concat " " ["Running in server mode on port"; Int.to_string port_number;"\nPress enter twice.\n"] in
+    let server_reference_promise = Http_server.start_server port_number (chat_http_request_handler log) in
+    let startup_message = String.concat " " ["Running in server mode on port"; Int.to_string port_number;"\n"] in
     log startup_message;
-    chat log user_input_promises 1;;
+    Http_server.schedule_server_shutdown
+      (chat log user_input_promises 1)
+      server_reference_promise;;
 end;;
+
+let random_port_determiner _ = 50051
 
 let start_one_on_one _ =
   default_log "Pick a mode ('client' or 'server')\n> ";
   Lwt_main.run (Mode.pick_from_stdin
   >>= (fun mode ->
   match mode with
-    | Mode.Client -> Client.run [] default_log Client.http_chat_msg_sender
+    | Mode.Client -> Client.run [] default_log Client.http_chat_msg_sender random_port_determiner
     | Mode.Server -> Server.run [] default_log
   ));;

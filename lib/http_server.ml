@@ -39,17 +39,21 @@ let run_server_forever port req_handler =
   >>= fun _ ->
   forever);;
 
-let run_server_during_lwt_task port req_handler lwt_task =
-  let forever, _ = Lwt.wait () in
-  let server_reference_promise = start_server port req_handler in
-  Lwt_main.run (server_reference_promise
-  >>= fun server_reference ->
-  Lwt.bind (Lwt.pick [forever; lwt_task]) (fun () ->
-    match !server_reference with
+(* Shuts down the server after the resolution of the promise P. *)
+let schedule_server_shutdown p optional_server_reference_promise =
+  optional_server_reference_promise
+  >>= fun optional_server_reference ->
+  Lwt.bind p (fun () ->
+    match !optional_server_reference with
       | None -> Lwt.return (print_endline "Something broke")
       | Some reference ->
         (*print_endline "Shutting down";*)
-        Lwt_io.shutdown_server reference));;
+        Lwt_io.shutdown_server reference);;
+
+let run_server_during_lwt_task port req_handler lwt_task =
+  let forever, _ = Lwt.wait () in
+  let server_reference_promise = start_server port req_handler in
+  Lwt_main.run (schedule_server_shutdown (Lwt.pick [forever; lwt_task]) server_reference_promise);;
 
 let run_server_for_n_seconds port req_handler seconds =
   run_server_during_lwt_task port req_handler (Lwt_unix.sleep seconds);;

@@ -16,6 +16,8 @@ let test_http_get _ =
   let expected = Some "</html>" in
   Assertions.assert_options_equal expected actual;;
 
+let dummy_log _ = ();;
+
 let test_start_server_and_hit_it _ =
   let port = 8080 in
   let call_api =
@@ -27,7 +29,7 @@ let test_start_server_and_hit_it _ =
       | None -> Lwt.fail (OUnitTest.OUnit_failure "Didn't get a valid response")
       | Some _ -> Lwt.return ()
   in
-  Oto.run_server_during_lwt_task port Oto.Server.chat_req_handler call_api;;
+  Oto.run_server_during_lwt_task port (Oto.chat_http_request_handler dummy_log) call_api;;
 
 let test_pick_session_mode _ =
   let simulate_pick_session_mode user_input = (Lwt_main.run (Oto.Mode.pick (Lwt.return user_input))) in
@@ -51,18 +53,35 @@ let test_server_requests_port_to_run_on _ =
 
 exception Timeout of string;;
 
-let dummy_log _ = ();;
-
 let test_server_exits_after_user_types_slash_exit _ =
-  let server_run = Oto.Server.run [Lwt.return "8081"; Lwt.return "/exit"] dummy_log in
+  let server_run = Oto.Server.run [Lwt.return "8081"; Lwt.return ""; Lwt.return "/exit"] dummy_log in
   let timeout = Lwt.bind (Lwt_unix.sleep 0.5) (fun () -> Lwt.fail (Timeout "Server didn't exit based on user input")) in
   Lwt_main.run (Lwt.pick [server_run; timeout]);;
 
+let dummy_message_sender _hostname _port msg = Lwt.return (String.concat " " ["Sent"; msg]);;
+
 let test_client_exits_after_user_types_slash_exit _ =
-  let dummy_message_sender _hostname _port msg = Lwt.return (String.concat " " ["Sent"; msg]) in
-  let client_run = Oto.Client.run [Lwt.return "localhost:8081"; Lwt.return "/exit"] dummy_log dummy_message_sender in
-  let timeout = Lwt.bind (Lwt_unix.sleep 0.5) (fun () -> Lwt.fail (Timeout "Client didn't exit based on user input")) in
+  let port_determiner _ = 50505 in
+  let simulated_user_input = [Lwt.return "localhost:8081"; Lwt.return ""; Lwt.return "/exit"] in
+  let client_run = Oto.Client.run simulated_user_input Oto.default_log dummy_message_sender port_determiner in
+  let timeout = Lwt.bind (Lwt_unix.sleep 1.0) (fun () -> Lwt.fail (Timeout "Client didn't exit based on user input")) in
   Lwt_main.run (Lwt.pick [client_run; timeout]);;
+
+let test_client_starts_server_on_determined_port _ =
+  let port = 50050 in
+  let port_determiner _ = port in
+  let send_message_to_client =
+    Lwt_unix.sleep 0.5
+    >>= fun () ->
+    Oto.http_get "localhost" port "/message?content=hello"
+    >>= fun optional_pair ->
+    match optional_pair with
+      | None -> Lwt.fail (OUnitTest.OUnit_failure "Didn't get a valid response")
+      | Some _ -> Lwt.return ()
+  in
+  let simulated_user_input = [Lwt.return "localhost:8081"; Lwt_unix.sleep 1.0 >>= fun () -> Lwt.return "/exit"] in
+  let client_run = Oto.Client.run simulated_user_input dummy_log dummy_message_sender port_determiner in
+  Lwt_main.run (Lwt.join [client_run; send_message_to_client]);;
 
 let suite =
   "OneToOneTest" >::: [
@@ -72,7 +91,8 @@ let suite =
     "test_client_requests_server_socket" >:: test_client_requests_server_socket;
     "test_server_requests_port_to_run_on" >:: test_server_requests_port_to_run_on;
     "test_server_exits_after_user_types_slash_exit" >:: test_server_exits_after_user_types_slash_exit;
-    "test_client_exits_after_user_types_slash_exit" >:: test_client_exits_after_user_types_slash_exit
+    "test_client_exits_after_user_types_slash_exit" >:: test_client_exits_after_user_types_slash_exit;
+    "test_client_starts_server_on_determined_port" >:: test_client_starts_server_on_determined_port
   ];;
 
 run_test_tt_main suite
