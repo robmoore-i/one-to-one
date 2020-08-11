@@ -61,6 +61,8 @@ let chat_http_request_handler log reqd =
     let headers = Headers.of_list [ "connection", "close" ] in
     Reqd.respond_with_string reqd (Response.create ~headers `Method_not_allowed) "";;
 
+exception ResponseNotReceived of string;;
+
 module Client = struct
   exception MalformedSocket of string;;
 
@@ -73,14 +75,12 @@ module Client = struct
 
   let get_server_socket_from_stdin = get_server_socket (Lwt_io.read_line Lwt_io.stdin);;
 
-  exception ResponseNotReceived of string;;
-
   (* This function is partially applied to produce a function of the signature
      string -> unit, whose job is to send chat messages. This makes the
      message-sending functionality injectable, and therefore both testable and
      swappable. *)
   let http_chat_msg_sender hostname port msg =
-    http_get hostname port (String.concat "=" ["/message?content"; msg])
+    http_get hostname port (Printf.sprintf "/message?content=%s&reply_socket=%s" msg "localhost:9091")
     >>= fun optional_response -> match optional_response with
       | None -> Lwt.fail (ResponseNotReceived "Didn't get an acknowledgement from chat partner")
       | Some (_, body) -> Lwt.return (String.concat "" [body; "\n"]);;
@@ -95,7 +95,7 @@ module Client = struct
       log acknowledgement_msg;
       chat log user_input_promises (i + 1) send_msg);;
 
-  let run user_input_promises log chat_msg_sender port_determiner =
+  let run log user_input_promises chat_msg_sender port_determiner =
     log "What's the socket of the server in the format host:port? (e.g. 'localhost:8080')\n> ";
     get_server_socket (nth_user_input user_input_promises 0)
     >>= fun (hostname, port) ->
@@ -123,15 +123,26 @@ module Server = struct
 
   let pick_port_from_stdin _ = pick_port (Lwt.return (input_line stdin));;
 
-  let rec chat log user_input_promises i =
+  (* This function is partially applied to produce a function of the signature
+     string -> unit, whose job is to send chat messages. This makes the
+     message-sending functionality injectable, and therefore both testable and
+     swappable. *)
+  let http_chat_msg_sender hostname port msg =
+    http_get hostname port (Printf.sprintf "/message?content=%s" msg)
+    >>= fun optional_response -> match optional_response with
+      | None -> Lwt.fail (ResponseNotReceived "Didn't get an acknowledgement from chat partner")
+      | Some (_, body) -> Lwt.return (String.concat "" [body; "\n"]);;
+
+  let rec chat log user_input_promises i send_msg =
     nth_user_input user_input_promises i
     >>= fun user_input ->
     if user_input = "/exit"
     then Lwt.return (log "Exiting\n")
-    else
-    chat log user_input_promises (i + 1);;
+    else Lwt.bind (send_msg (Printf.sprintf "/message?content=%s" user_input)) (fun acknowledgement_msg ->
+      log acknowledgement_msg;
+      chat log user_input_promises (i + 1) send_msg);;
 
-  let run user_input_promises log =
+  let run log user_input_promises msg_sender =
     log "Which port should this server run on? (e.g. '8081')\n> ";
     pick_port (nth_user_input user_input_promises 0)
     >>= fun port_number ->
@@ -139,17 +150,17 @@ module Server = struct
     let startup_message = String.concat " " ["Running in server mode on port"; Int.to_string port_number;"\n"] in
     log startup_message;
     Http_server.schedule_server_shutdown
-      (chat log user_input_promises 1)
+      (chat log user_input_promises 1 (msg_sender "localhost" 9091))
       server_reference_promise;;
 end;;
 
-let random_port_determiner _ = 50051
+let random_port_determiner _ = 9091
 
 let start_one_on_one _ =
   default_log "Pick a mode ('client' or 'server')\n> ";
   Lwt_main.run (Mode.pick_from_stdin
   >>= (fun mode ->
   match mode with
-    | Mode.Client -> Client.run [] default_log Client.http_chat_msg_sender random_port_determiner
-    | Mode.Server -> Server.run [] default_log
+    | Mode.Client -> Client.run default_log [] Client.http_chat_msg_sender random_port_determiner
+    | Mode.Server -> Server.run default_log [] Server.http_chat_msg_sender
   ));;
