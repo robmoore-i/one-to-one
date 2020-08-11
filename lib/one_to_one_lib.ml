@@ -62,6 +62,10 @@ module Client = struct
 
   exception ResponseNotReceived of string;;
 
+  (* This function is partially applied to produce a function of the signature
+     string -> unit, whose job is to send chat messages. This makes the
+     message-sending functionality injectable, and therefore both testable and
+     swappable. *)
   let http_chat_msg_sender hostname port msg =
     http_get hostname port (String.concat "=" ["/message?content"; msg])
     >>= fun optional_response -> match optional_response with
