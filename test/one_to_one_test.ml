@@ -55,8 +55,14 @@ let dummy_log _ = ();;
 
 let test_server_exits_after_user_types_slash_exit _ =
   let server_run = Oto.Server.run [Lwt.return "8081"; Lwt.return "/exit"] dummy_log in
-  let timeout = Lwt.bind (Lwt_unix.sleep 0.5) (fun () -> Lwt.fail (Timeout "Server didn't start and then exit based on user input")) in
+  let timeout = Lwt.bind (Lwt_unix.sleep 0.5) (fun () -> Lwt.fail (Timeout "Server didn't exit based on user input")) in
   Lwt_main.run (Lwt.pick [server_run; timeout]);;
+
+let test_client_exits_after_user_types_slash_exit _ =
+  let dummy_message_sender _hostname _port msg = Lwt.return (String.concat " " ["Sent"; msg]) in
+  let client_run = Oto.Client.run [Lwt.return "localhost:8081"; Lwt.return "/exit"] dummy_log dummy_message_sender in
+  let timeout = Lwt.bind (Lwt_unix.sleep 0.5) (fun () -> Lwt.fail (Timeout "Client didn't exit based on user input")) in
+  Lwt_main.run (Lwt.pick [client_run; timeout]);;
 
 let suite =
   "OneToOneTest" >::: [
@@ -65,7 +71,8 @@ let suite =
     "test_pick_session_mode" >:: test_pick_session_mode;
     "test_client_requests_server_socket" >:: test_client_requests_server_socket;
     "test_server_requests_port_to_run_on" >:: test_server_requests_port_to_run_on;
-    "test_server_exits_after_user_types_slash_exit" >:: test_server_exits_after_user_types_slash_exit
+    "test_server_exits_after_user_types_slash_exit" >:: test_server_exits_after_user_types_slash_exit;
+    "test_client_exits_after_user_types_slash_exit" >:: test_client_exits_after_user_types_slash_exit
   ];;
 
 run_test_tt_main suite
