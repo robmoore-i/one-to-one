@@ -110,7 +110,7 @@ module Server = struct
   let rec chat log user_input_promises i =
     (nth_user_input user_input_promises i)
     >>= fun user_input ->
-    if user_input = "exit"
+    if user_input = "/exit"
     then Lwt.return (log "Exiting\n")
     else
     chat log user_input_promises (i + 1);;
