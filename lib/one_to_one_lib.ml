@@ -57,11 +57,11 @@ module Client = struct
     default_log acknowledgement_msg;
     chat send_msg;;
 
-  let start _ =
+  let run chat_msg_sender =
     default_log "What's the socket of the server in the format host:port? (e.g. 'localhost:8080')\n> ";
     get_server_socket_from_stdin
     >>= fun (hostname, port) ->
-    let send_msg = http_chat_msg_sender hostname port in
+    let send_msg = chat_msg_sender hostname port in
     let startup_message = String.concat " " ["Running in client mode against server at host"; hostname; "on port"; Int.to_string port; "\n"] in
     Lwt.bind (
       Lwt.return (default_log startup_message))
@@ -137,6 +137,6 @@ let start_one_on_one _ =
   Lwt_main.run (Mode.pick_from_stdin
   >>= (fun mode ->
   match mode with
-    | Mode.Client -> Client.start ()
+    | Mode.Client -> Client.run Client.http_chat_msg_sender
     | Mode.Server -> Server.run [] default_log
   ));;
