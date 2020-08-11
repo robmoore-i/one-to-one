@@ -7,6 +7,26 @@ let run_server_during_lwt_task = Http_server.run_server_during_lwt_task;;
 
 let default_log s = print_string s; flush stdout
 
+(* If custom input is provided (i.e. in a test or from some other input
+   source) then use that. Otherwise, read input from stdin.
+
+   You'll notice this function reads from stdin in two ways. This is because
+   for the first read, I've found that using the Lwt function ignores the
+   first input, which is a buggy, unpleasant experience. I don't have an
+   explanation for why Lwt behaves in this way. At the same time however,
+   using the blocking console read causes the server (which should really be
+   running in a different thread) to stop serving requests. Empirically, I've
+   found that the below usage arrangement provides the expected user
+   experience.
+*)
+let nth_user_input user_input_promises i =
+  match List.nth_opt user_input_promises i with
+    | Some p -> p
+    | None ->
+      match i with
+        | 0 -> Lwt.return (input_line stdin)
+        | _ -> Lwt_io.read_line Lwt_io.stdin;;
+
 module Mode = struct
   type mode =
   | Client
@@ -48,24 +68,24 @@ module Client = struct
       | None -> Lwt.fail (ResponseNotReceived "Didn't get an acknowledgement from chat partner")
       | Some (_, body) -> Lwt.return (String.concat "" [body; "\n"]);;
 
-  let rec chat send_msg =
-    print_string "> "; flush stdout;
-    Lwt_io.read_line Lwt_io.stdin
+  let rec chat log user_input_promises i send_msg =
+    log "> ";
+    nth_user_input user_input_promises i
     >>= fun message ->
     send_msg message
     >>= fun acknowledgement_msg ->
-    default_log acknowledgement_msg;
-    chat send_msg;;
+    log acknowledgement_msg;
+    chat log user_input_promises (i + 1) send_msg;;
 
-  let run chat_msg_sender =
-    default_log "What's the socket of the server in the format host:port? (e.g. 'localhost:8080')\n> ";
-    get_server_socket_from_stdin
+  let run user_input_promises log chat_msg_sender =
+    log "What's the socket of the server in the format host:port? (e.g. 'localhost:8080')\n> ";
+    get_server_socket (nth_user_input user_input_promises 0)
     >>= fun (hostname, port) ->
     let send_msg = chat_msg_sender hostname port in
-    let startup_message = String.concat " " ["Running in client mode against server at host"; hostname; "on port"; Int.to_string port; "\n"] in
+    let startup_message = String.concat " " ["Running in client mode against server at host"; hostname; "on port"; Int.to_string port; "\nPress enter twice to confirm connection to server.\n"] in
     Lwt.bind (
-      Lwt.return (default_log startup_message))
-      (fun () -> chat send_msg);;
+      Lwt.return (log startup_message))
+      (fun () -> chat log user_input_promises 1 send_msg);;
 end;;
 
 module Server = struct
@@ -89,33 +109,13 @@ module Server = struct
       let headers = Headers.of_list ["content-type", "application/json"; "connection", "close"] in
       let target_expected_prefix_length = String.length "/message?content=" in
       print_endline (String.concat " " ["> >"; (String.sub target target_expected_prefix_length ((String.length target) - target_expected_prefix_length))]);
-      Reqd.respond_with_string reqd (Response.create ~headers `OK) "Message receieved"
+      Reqd.respond_with_string reqd (Response.create ~headers `OK) "confirmed"
     | _ ->
       let headers = Headers.of_list [ "connection", "close" ] in
       Reqd.respond_with_string reqd (Response.create ~headers `Method_not_allowed) "";;
 
-  (* If custom input is provided (i.e. in a test or from some other input
-     source) then use that. Otherwise, read input from stdin.
-
-     You'll notice this function reads from stdin in two ways. This is because
-     for the first read, I've found that using the Lwt function ignores the
-     first input, which is a buggy, unpleasant experience. I don't have an
-     explanation for why Lwt behaves in this way. At the same time however,
-     using the blocking console read causes the server (which should really be
-     running in a different thread) to stop serving requests. Empirically, I've
-     found that the below usage arrangement provides the expected user
-     experience.
-  *)
-  let nth_user_input user_input_promises i =
-    match List.nth_opt user_input_promises i with
-      | Some p -> p
-      | None ->
-        match i with
-          | 0 -> Lwt.return (input_line stdin)
-          | _ -> Lwt_io.read_line Lwt_io.stdin;;
-
   let rec chat log user_input_promises i =
-    (nth_user_input user_input_promises i)
+    nth_user_input user_input_promises i
     >>= fun user_input ->
     if user_input = "/exit"
     then Lwt.return (log "Exiting\n")
@@ -137,6 +137,6 @@ let start_one_on_one _ =
   Lwt_main.run (Mode.pick_from_stdin
   >>= (fun mode ->
   match mode with
-    | Mode.Client -> Client.run Client.http_chat_msg_sender
+    | Mode.Client -> Client.run [] default_log Client.http_chat_msg_sender
     | Mode.Server -> Server.run [] default_log
   ));;
