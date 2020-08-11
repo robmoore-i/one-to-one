@@ -75,11 +75,12 @@ module Client = struct
   let rec chat log user_input_promises i send_msg =
     log "> ";
     nth_user_input user_input_promises i
-    >>= fun message ->
-    send_msg message
-    >>= fun acknowledgement_msg ->
-    log acknowledgement_msg;
-    chat log user_input_promises (i + 1) send_msg;;
+    >>= fun user_input ->
+    if user_input = "/exit"
+    then Lwt.return (log "Exiting\n")
+    else Lwt.bind (send_msg user_input) (fun acknowledgement_msg ->
+      log acknowledgement_msg;
+      chat log user_input_promises (i + 1) send_msg);;
 
   let run user_input_promises log chat_msg_sender =
     log "What's the socket of the server in the format host:port? (e.g. 'localhost:8080')\n> ";
@@ -131,7 +132,7 @@ module Server = struct
     pick_port (nth_user_input user_input_promises 0)
     >>= fun port_number ->
     let _server_reference_promise = Http_server.start_server port_number chat_req_handler in
-    let startup_message = String.concat " " ["Running in server mode on port"; Int.to_string port_number;"\n"] in
+    let startup_message = String.concat " " ["Running in server mode on port"; Int.to_string port_number;"\nPress enter twice.\n"] in
     log startup_message;
     chat log user_input_promises 1;;
 end;;
