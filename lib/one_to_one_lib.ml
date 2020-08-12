@@ -86,14 +86,15 @@ module Client = struct
       let headers = Headers.of_list [ "connection", "close" ] in
       Reqd.respond_with_string reqd (Response.create ~headers `Method_not_allowed) "";;
 
-  let public_ip_address = shell_output "dig +short myip.opendns.com @resolver1.opendns.com";;
+  let public_ip_address _ = shell_output "dig +short myip.opendns.com @resolver1.opendns.com";;
 
   (* This function is partially applied to produce a function of the signature
      string -> unit, whose job is to send chat messages. This makes the
      message-sending functionality injectable, and therefore both testable and
      swappable. *)
   let http_chat_msg_sender client_port server_hostname server_port msg =
-    http_get server_hostname server_port (Printf.sprintf "/message?content=%s&reply_socket=localhost:%s" msg (Int.to_string client_port))
+    let client_host = if "localhost" = server_hostname then "localhost" else public_ip_address () in
+    http_get server_hostname server_port (Printf.sprintf "/message?content=%s&reply_socket=%s:%s" msg client_host (Int.to_string client_port))
     >>= fun optional_response -> match optional_response with
       | None -> Lwt.return (Printf.sprintf "Message not acknowledged by chat partner (server at %s:%s) - presumably it was not recieved..." server_hostname (Int.to_string server_port))
       | Some (_, body) -> Lwt.return (String.concat "" [body; "\n"]);;
