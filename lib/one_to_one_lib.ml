@@ -69,7 +69,7 @@ module Client = struct
       let headers = Headers.of_list ["content-type", "application/json"; "connection", "close"] in
       let target_expected_prefix_length = String.length "/message?content=" in
       let message_content = String.sub target target_expected_prefix_length ((String.length target) - target_expected_prefix_length) in
-      log (String.concat " " ["> >"; message_content; "\n"]);
+      log (String.concat " " ["\n>c>"; message_content; "\nc> "]);
       Reqd.respond_with_string reqd (Response.create ~headers `OK) "confirmed"
     | _ ->
       let headers = Headers.of_list [ "connection", "close" ] in
@@ -86,11 +86,11 @@ module Client = struct
       | Some (_, body) -> Lwt.return (String.concat "" [body; "\n"]);;
 
   let rec chat log user_input_promises i send_msg =
-    log "> ";
+    log "\nc> ";
     nth_user_input user_input_promises i
     >>= fun user_input ->
     if user_input = "/exit"
-    then Lwt.return (log "Exiting\n")
+    then Lwt.return (log "\nExiting\n")
     else Lwt.bind (send_msg user_input) (fun acknowledgement_msg ->
       log acknowledgement_msg;
       chat log user_input_promises (i + 1) send_msg);;
@@ -146,7 +146,7 @@ module Server = struct
       let headers = Headers.of_list ["content-type", "application/json"; "connection", "close"] in
       let (message_content, client_host, client_port) = parse_http_target target in
       client_socket_pair_reference := Some (client_host, client_port);
-      log (String.concat " " ["> >"; message_content; "\n"]);
+      log (String.concat " " ["\n>s>"; message_content; "\ns> "]);
       Reqd.respond_with_string reqd (Response.create ~headers `OK) "confirmed"
     | _ ->
       let headers = Headers.of_list [ "connection", "close" ] in
@@ -168,11 +168,11 @@ module Server = struct
           | Some (_, body) -> Lwt.return (String.concat "" [body; "\n"]);;
 
   let rec chat log user_input_promises i msg_sender =
-    log "> ";
+    log "\ns> ";
     nth_user_input user_input_promises i
     >>= fun user_input ->
     if user_input = "/exit"
-    then Lwt.return (log "Exiting\n")
+    then Lwt.return (log "\nExiting\n")
     else
     Lwt.bind (msg_sender user_input) (fun acknowledgement_msg ->
       log acknowledgement_msg;
