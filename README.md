@@ -71,7 +71,7 @@ are not received, of course. They are informed of this.
 - Code simplicity/maintainability:
   - The chat implementation is currently coupled to the wire protocol.
   - There is some unaddressed duplication between the server and the client.
-  - There's a lack of automatic end to end tests.
+  - There's a lack specifically of end-to-end automatic tests.
   - There's a lack of separation for log output vs output to be read by users.
 - Runs on linux: Haven't made a docker image to run this in yet, so it has only
   run on Mac until now.
