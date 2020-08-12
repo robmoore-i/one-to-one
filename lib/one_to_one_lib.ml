@@ -49,6 +49,17 @@ module Mode = struct
   let pick_from_stdin = pick (Lwt_io.read_line Lwt_io.stdin);;
 end;;
 
+let shell_output command =
+  let ic, oc = Unix.open_process command in
+  let buf = Buffer.create 16 in
+  (try
+     while true do
+       Buffer.add_channel buf ic 1
+     done
+   with End_of_file -> ());
+  let _ = Unix.close_process (ic, oc) in
+  String.trim (Buffer.contents buf);;
+
 exception MalformedSocket of string;;
 
 exception ResponseNotReceived of string;;
@@ -75,6 +86,8 @@ module Client = struct
       let headers = Headers.of_list [ "connection", "close" ] in
       Reqd.respond_with_string reqd (Response.create ~headers `Method_not_allowed) "";;
 
+  let public_ip_address = shell_output "dig +short myip.opendns.com @resolver1.opendns.com";;
+
   (* This function is partially applied to produce a function of the signature
      string -> unit, whose job is to send chat messages. This makes the
      message-sending functionality injectable, and therefore both testable and
@@ -82,7 +95,7 @@ module Client = struct
   let http_chat_msg_sender client_port server_hostname server_port msg =
     http_get server_hostname server_port (Printf.sprintf "/message?content=%s&reply_socket=localhost:%s" msg (Int.to_string client_port))
     >>= fun optional_response -> match optional_response with
-      | None -> Lwt.fail (ResponseNotReceived "Didn't get an acknowledgement from chat partner")
+      | None -> Lwt.return (Printf.sprintf "Message not acknowledged by chat partner (server at %s:%s) - presumably it was not recieved..." server_hostname (Int.to_string server_port))
       | Some (_, body) -> Lwt.return (String.concat "" [body; "\n"]);;
 
   let rec chat log user_input_promises i send_msg =
@@ -152,19 +165,17 @@ module Server = struct
       let headers = Headers.of_list [ "connection", "close" ] in
       Reqd.respond_with_string reqd (Response.create ~headers `Method_not_allowed) "";;
 
-  exception NoChatPartner of string;;
-
   (* This function is partially applied to produce a function of the signature
      string -> unit, whose job is to send chat messages. This makes the
      message-sending functionality injectable, and therefore both testable and
      swappable. *)
   let http_chat_msg_sender client_socket_pair_reference msg =
     match !client_socket_pair_reference with
-      | None -> Lwt.fail (NoChatPartner "Can't send message because no connected chat partner to send it to.")
+      | None -> Lwt.return "Can't send message because there isn't a connected chat partner"
       | Some (host, port) ->
         http_get host port (Printf.sprintf "/message?content=%s" msg)
         >>= fun optional_response -> match optional_response with
-          | None -> Lwt.fail (ResponseNotReceived (Printf.sprintf "Didn't get an acknowledgement from chat partner at %s:%s" host (Int.to_string port)))
+          | None -> Lwt.return (Printf.sprintf "Message not acknowledged by chat partner (client at %s:%s) - presumably it was not recieved..." host (Int.to_string port))
           | Some (_, body) -> Lwt.return (String.concat "" [body; "\n"]);;
 
   let rec chat log user_input_promises i msg_sender =

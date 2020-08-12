@@ -1,28 +1,66 @@
 # One-to-one
 
-Trying some OCaml.
+Doing some OCaml for an interview.
 
-### Program description
+### Problem description
+
+```
+Simple one on one chat.
+
+Application should start in two modes:
+- as a server, waiting for one client to connect or
+- as a client, taking an IP address (or hostname) of server to connect to.
+
+After connection is established user on either side (server and client) can
+send messages to the other side. After connection is terminated by the client -
+server continues waiting for another client. The receiving side should
+acknowledge every incoming message (automatically send back "message received"
+indication), sending side should show the rountrip time for acknowledgment.
+Wire protocol shouldn't make any assumptions on the message contents (e.g.
+allowed byte values, character encoding, etc).
+
+UI is your choice - can be just a console.
+
+Requirements:
+
+- Application is to be compiled and run on linux
+- Implementation language : OCaml
+- Can use any 3rd-party general-purpose libraries (extlib, lwt, containers,
+  etc.)
+
+Primary objectives: robustness, code simplicity and maintainability.
+```
+
+### Solution description
 
 The program interacts with users over the command line. All user input is taken
 from stdin, and all the program's output is given to stdout (and stderr in the
 case that something goes terribly wrong).
 
 When you run the program, you are asked to pick a running mode: Client or
-server. In each case, you are asked to pick a port number on which your
-instance of the program will be reachable by a chat partner.
+server. Once you've entered the startup information, you'll be prompted to
+"press enter to continue".
 
-If the program is started in server mode, the program will do nothing until an
-instance in client mode initiates a connection. If the program is started in
-client mode then, the program will additionally prompt the user for a socket
-(host:port) to connect to an instance in server mode.
+If the program is started in server mode, you are asked to pick a port to run
+on. The program then goes to a prompt, where users can send messages to the
+last client who contacted them. If no client has sent them a message yet, then
+this will be explained to them if they try to send a message.
 
-Once a connection is made between two instances, they exchange messages until
-one party terminates the connection.
+If the program is started in client mode then, the program will
+prompt the user for a socket (host:port) to connect to an instance in server
+mode. The client can then begin sending and receiving messages with the server.
+Note that the client has to initiate contact by sending the first message. Once
+the client has sent the first message, the server will be able to send messages
+to them too.
 
-Once a connection is terminated, the process of the instance running in client
-mode will finish. The instance running in server mode will continue and await a
-connection from a new client instance.
+Either party can end their session by typing "/exit". This of course means that
+the message /exit can't be sent without some additional logic in the program to
+enable that. This exit functionality is useful for testing the program
+automatically though, and so users are expected to accommodate to not being
+able to send '/exit'.
+
+When a counter-party in a chat exits, the messages sent by the remaining party
+are not received, of course. They are informed of this.
 
 ### Running the program
 
@@ -93,10 +131,3 @@ Cons:
   intended to.
 - Not all OCaml libraries are cross-platform, so it working on Mac is no
   guarantee that it will work on Linux.
-
-### Misc
-
-#### Issues raised while learning
-
-- Ounit2 assertion failure messages aren't what I hoped for: https://github.com/gildor478/ounit/issues/20
-- Lwt_io.getaddrinfo hangs intermittently (at least on Mac): https://github.com/ocsigen/lwt/issues/797

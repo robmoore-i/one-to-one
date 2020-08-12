@@ -83,6 +83,9 @@ let test_http_target_parser _ =
   (* Doesn't yet URL decode messages. Could potentially use a POST body to get around this, but I think that would be more work, for now. *)
   (*assert_equal ("spaces are cool", "localhost", 9091) (Oto.Server.parse_http_target "/message?content=spaces%20are%20cool&reply_socket=localhost:9091");;*)
 
+let test_shell_output _ =
+  Assertions.assert_string_equal "hello" (Oto.shell_output "echo \"hello\"");;
+
 (* Mystery: The client socket reference is updated after a message is recieved, but the update to the reference is not respected
             by the message sender, who claims at send-time that the very same client socket reference is empty.
             => This causes the test to fail, although the same behaviour works as expected on execution. *)
@@ -110,6 +113,7 @@ let suite =
     "test_client_exits_after_user_types_slash_exit" >:: test_client_exits_after_user_types_slash_exit;
     "test_client_starts_server_on_determined_port" >:: test_client_starts_server_on_determined_port;
     "test_http_target_parser" >:: test_http_target_parser;
+    "test_shell_output" >:: test_shell_output;
 (*    "test_back_and_forth_message_exchange" >:: test_back_and_forth_message_exchange;*)
   ];;
 
