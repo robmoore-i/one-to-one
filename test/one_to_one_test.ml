@@ -76,10 +76,11 @@ let test_client_starts_server_on_determined_port _ =
 
 let test_http_target_parser _ =
   assert_equal ("hello", "localhost", 9091) (Oto.Server.parse_http_target "/message?content=hello&reply_socket=localhost:9091");
-  assert_equal ("you?", "localhost", 9091) (Oto.Server.parse_http_target "/message?content=you?&reply_socket=localhost:9091");
+  assert_equal ("you?", "localhost", 10002) (Oto.Server.parse_http_target "/message?content=you?&reply_socket=localhost:10002");
   assert_equal ("nonsense&reply_socket=confused.com:80", "localhost", 9091) (Oto.Server.parse_http_target "/message?content=nonsense&reply_socket=confused.com:80&reply_socket=localhost:9091");
-  assert_equal ("", "localhost", 9091) (Oto.Server.parse_http_target "/message?content=&reply_socket=localhost:9091");
-  assert_equal ("msg", "some-chat.com", 9091) (Oto.Server.parse_http_target "/message?content=msg&reply_socket=some-chat.com:9091");;
+  assert_equal ("", "localhost", 8080) (Oto.Server.parse_http_target "/message?content=&reply_socket=localhost:8080");
+  assert_equal ("msg", "some-chat.com", 80) (Oto.Server.parse_http_target "/message?content=msg&reply_socket=some-chat.com:80");
+  assert_equal ("msg", "12.34.56.78", 9090) (Oto.Server.parse_http_target "/message?content=msg&reply_socket=12.34.56.78:9090");;
   (* Doesn't yet URL decode messages. Could potentially use a POST body to get around this, but I think that would be more work, for now. *)
   (*assert_equal ("spaces are cool", "localhost", 9091) (Oto.Server.parse_http_target "/message?content=spaces%20are%20cool&reply_socket=localhost:9091");;*)
 

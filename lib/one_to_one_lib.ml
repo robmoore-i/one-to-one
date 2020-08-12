@@ -190,7 +190,6 @@ module Server = struct
       log acknowledgement_msg;
       chat log user_input_promises (i + 1) msg_sender);;
 
-
   let run log user_input_promises msg_sender =
     log "Which port should this server run on? (e.g. '8081')\n> ";
     pick_port (nth_user_input user_input_promises 0)

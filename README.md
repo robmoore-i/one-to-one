@@ -62,6 +62,21 @@ able to send '/exit'.
 When a counter-party in a chat exits, the messages sent by the remaining party
 are not received, of course. They are informed of this.
 
+### Areas for improvement
+
+- Roundtrip time for message acknowledgement
+- Sending arbitrary messages
+- Robustness: Unexpected behaviour in Lwt_io is making it difficult to write
+  automated tests to automatically validate the program's behaviour in
+  different scenarios.
+- Code simplicity/maintainability: The current implementation is coupled to
+  the wire protocol. There is some unaddressed duplication between the server
+  and the client. Lacking automatic end to end tests. Lack of separation
+  between log output and output to be read by users.
+- Runs on linux: Haven't made a docker image to run this in yet, so it has only
+  run on Mac until now. I would guess that it will still work, but the biggest
+  risk is probably Lwt_io, which has behaved unexpectedly on Mac.
+
 ### Running the program
 
 #### Run the executable
