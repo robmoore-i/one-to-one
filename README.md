@@ -75,13 +75,14 @@ are not received, of course. They are informed of this.
   between log output and output to be read by users.
 - Runs on linux: Haven't made a docker image to run this in yet, so it has only
   run on Mac until now. I would guess that it will still work, but the biggest
-  risk is probably Lwt_io, which has behaved unexpectedly on Mac.
+  risk is probably Lwt_io, which has behaved unexpectedly (at least on Mac).
 
 ### Running the program
 
 #### Run the executable
 
 ```
+# Start from root directory of this repo
 cd exec
 ./run.sh
 ```
@@ -89,6 +90,7 @@ cd exec
 #### Run the tests
 
 ```
+# Start from root directory of this repo
 cd test
 ./run.sh
 ```
@@ -107,15 +109,15 @@ Pros:
   ones like web sockets. When building using unfamiliar tools (I am new to
   OCaml), sticking to simpler use-cases can be the difference between
   delivering working software on time, versus using up your time in wrestling
-  with documentation-less, example-less dependencies.
+  with documentation-less, example-less third party libraries.
 
 Cons:
 
 - As a protocol for this functionality, it would be a valid criticism to say
   that HTTP as a whole is heavyweight.
 - Using plain HTTP isn't inherently bidirectional, as opposed to
-  something like web sockets, which would be a more natural fit for this
-  problem.
+  something like web sockets, which I think would be a more natural fit for
+  this problem.
   
 #### Program interface: Interactive
 
@@ -123,14 +125,17 @@ Pros:
 
 - Makes sense as part of the program's flow from a user perspective.
 - Writing code that reads directly from stdin is easier than writing code to
-  parse command-line arguments, probably. 
+  parse command-line arguments, I would guess. Especially given that I have an
+  understanding of how to read from stdin anyway as part of the chat
+  functionality.
 
 Cons:
 
 - You'd have to pipe text into the program in order to get it into a
   predetermined state automatically (i.e. without human interaction). As
   mentioned above however, this is a chat program, and so I would guess that
-  this use case doesn't demand support.
+  this use case doesn't demand support. The program is designed such that this
+  would be easy to change anyway, so I don't think this is a big problem.
   
 #### Developed on a mac
 
@@ -142,7 +147,6 @@ Pros:
 
 Cons:
 
-- OCaml programs typically run on Linux machines, and this particular one is
-  intended to.
-- Not all OCaml libraries are cross-platform, so it working on Mac is no
-  guarantee that it will work on Linux.
+- This program is intended to run on Linux.
+- Not all OCaml libraries are cross-platform, so the fact that it works on Mac
+  is no guarantee that it will work on Linux.
