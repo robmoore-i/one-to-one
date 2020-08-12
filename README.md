@@ -78,12 +78,17 @@ are not received, of course. They are informed of this.
 
 ### Running the program
 
-#### Run the executable
+Pre-requisites are`opam` and `dune`, primarily. Here are the outputs of some
+commands I ran, which you may find informative:
 
 ```
-# Start from root directory of this repo
-cd exec
-./run.sh
+romo$ opam --version
+2.0.7
+romo$ dune --version
+2.6.2
+romo$ ocaml --version
+The OCaml toplevel, version 4.10.0 
+romo$
 ```
 
 #### Run the tests
@@ -92,6 +97,77 @@ cd exec
 # Start from root directory of this repo
 cd test
 ./run.sh
+```
+
+Which should give you output like this:
+
+```
+[NOTE] Package ounit2 is already installed (current version is 2.2.3).
+[NOTE] Package httpaf is already installed (current version is 0.6.6).
+[NOTE] Package lwt is already installed (current version is 5.3.0).
+[NOTE] Package httpaf-lwt-unix is already installed (current version is 0.6.6).
+Entering directory '/Users/romo/Documents/one-to-one'
+Entering directory '/Users/romo/Documents/one-to-one'
+Entering directory '/Users/romo/Documents/one-to-one'
+.........
+Ran: 9 tests in: 1.11 seconds.
+OK
+```
+
+#### Run the executable
+
+```
+# Start from root directory of this repo
+cd exec
+./run.sh
+```
+
+An example server run looks like this:
+
+```
+[NOTE] Package httpaf is already installed (current version is 0.6.6).
+[NOTE] Package lwt is already installed (current version is 5.3.0).
+[NOTE] Package httpaf-lwt-unix is already installed (current version is 0.6.6).
+Entering directory '/Users/romo/Documents/one-to-one'
+Entering directory '/Users/romo/Documents/one-to-one'
+Entering directory '/Users/romo/Documents/one-to-one'
+Pick a mode ('client' or 'server')
+> server
+Which port should this server run on? (e.g. '8081')
+> 9090
+Running in server mode on port 9090 
+
+s> Press enter to continue > 
+
+>s> hello 
+s> hi             
+confirmed
+
+s> 
+```
+
+A corresponding example client run looks like this:
+
+```
+[NOTE] Package httpaf is already installed (current version is 0.6.6).
+[NOTE] Package lwt is already installed (current version is 5.3.0).
+[NOTE] Package httpaf-lwt-unix is already installed (current version is 0.6.6).
+Entering directory '/Users/romo/Documents/one-to-one'
+Entering directory '/Users/romo/Documents/one-to-one'
+Entering directory '/Users/romo/Documents/one-to-one'
+Pick a mode ('client' or 'server')
+> client
+What's the socket of the server in the format host:port? (e.g. 'localhost:8080')
+> localhost:9090
+Running in client mode against server at host localhost on port 9090 
+
+c> Press enter to continue > 
+hello
+confirmed
+
+c> 
+>c> hi 
+c>
 ```
 
 ### Technical choices with reasoning
