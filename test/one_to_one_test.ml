@@ -41,7 +41,7 @@ let test_server_requests_port_to_run_on _ =
 exception Timeout of string;;
 
 let dummy_client_msg_sender _client_port _server_hostname _server_port msg = Lwt.return (String.concat " " ["Sent by client:"; msg]);;
-let dummy_server_msg_sender _client_hostname _client_port msg = Lwt.return (String.concat " " ["Sent by server:"; msg]);;
+let dummy_server_msg_sender _client_socket_pair_reference msg = Lwt.return (String.concat " " ["Sent by server:"; msg]);;
 
 let test_server_exits_after_user_types_slash_exit _ =
   let simulated_user_input = [Lwt.return "8081"; Lwt.return ""; Lwt.return "/exit"] in

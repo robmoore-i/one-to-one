@@ -152,31 +152,32 @@ module Server = struct
       let headers = Headers.of_list [ "connection", "close" ] in
       Reqd.respond_with_string reqd (Response.create ~headers `Method_not_allowed) "";;
 
+  exception NoChatPartner of string;;
+
   (* This function is partially applied to produce a function of the signature
      string -> unit, whose job is to send chat messages. This makes the
      message-sending functionality injectable, and therefore both testable and
      swappable. *)
-  let http_chat_msg_sender hostname port msg =
-    http_get hostname port (Printf.sprintf "/message?content=%s" msg)
-    >>= fun optional_response -> match optional_response with
-      | None -> Lwt.fail (ResponseNotReceived "Didn't get an acknowledgement from chat partner")
-      | Some (_, body) -> Lwt.return (String.concat "" [body; "\n"]);;
+  let http_chat_msg_sender client_socket_pair_reference msg =
+    match !client_socket_pair_reference with
+      | None -> Lwt.fail (NoChatPartner "Can't send message because no connected chat partner to send it to.")
+      | Some (host, port) ->
+        http_get host port (Printf.sprintf "/message?content=%s" msg)
+        >>= fun optional_response -> match optional_response with
+          | None -> Lwt.fail (ResponseNotReceived (Printf.sprintf "Didn't get an acknowledgement from chat partner at %s:%s" host (Int.to_string port)))
+          | Some (_, body) -> Lwt.return (String.concat "" [body; "\n"]);;
 
-  exception NoChatPartner of string;;
-
-  let rec chat log user_input_promises i msg_sender client_socket_pair_reference =
+  let rec chat log user_input_promises i msg_sender =
     log "> ";
     nth_user_input user_input_promises i
     >>= fun user_input ->
     if user_input = "/exit"
     then Lwt.return (log "Exiting\n")
     else
-    match !client_socket_pair_reference with
-      | None -> Lwt.fail (NoChatPartner "Can't send message because no connected chat partner to send it to.")
-      | Some (host, port) ->
-        Lwt.bind (msg_sender host port user_input) (fun acknowledgement_msg ->
-          log acknowledgement_msg;
-          chat log user_input_promises (i + 1) msg_sender client_socket_pair_reference);;
+    Lwt.bind (msg_sender user_input) (fun acknowledgement_msg ->
+      log acknowledgement_msg;
+      chat log user_input_promises (i + 1) msg_sender);;
+
 
   let run log user_input_promises msg_sender =
     log "Which port should this server run on? (e.g. '8081')\n> ";
@@ -187,7 +188,7 @@ module Server = struct
     let startup_message = String.concat " " ["Running in server mode on port"; Int.to_string port_number;"\n"] in
     log startup_message;
     Http_server.schedule_server_shutdown
-      (chat log user_input_promises 1 msg_sender client_socket_pair_reference)
+      (chat log user_input_promises 1 (msg_sender client_socket_pair_reference))
       server_reference_promise;;
 end;;
 
@@ -195,7 +196,7 @@ end;;
    an imperfect implementation. An improvement would be to have this function
    try to listen on the randomly selected port to check that it's free before
    returning it. It would retry until finding a free port to listen on. *)
-let random_port_determiner _ = 50000 + (Random.int 10000)
+let random_port_determiner _ = 50000 + (Random.int 10000);;
 
 let start_one_on_one _ =
   default_log "Pick a mode ('client' or 'server')\n> ";
