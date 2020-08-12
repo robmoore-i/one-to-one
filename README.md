@@ -66,16 +66,15 @@ are not received, of course. They are informed of this.
 
 - Roundtrip time for message acknowledgement
 - Sending arbitrary messages
-- Robustness: Unexpected behaviour in Lwt_io is making it difficult to write
-  automated tests to automatically validate the program's behaviour in
-  different scenarios.
-- Code simplicity/maintainability: The current implementation is coupled to
-  the wire protocol. There is some unaddressed duplication between the server
-  and the client. Lacking automatic end to end tests. Lack of separation
-  between log output and output to be read by users.
+- Robustness: Unexpected behaviour in automated tests is making it difficult to
+  automatically validate the program's behaviour in different scenarios.
+- Code simplicity/maintainability:
+  - The chat implementation is currently coupled to the wire protocol.
+  - There is some unaddressed duplication between the server and the client.
+  - There's a lack of automatic end to end tests.
+  - There's a lack of separation for log output vs output to be read by users.
 - Runs on linux: Haven't made a docker image to run this in yet, so it has only
-  run on Mac until now. I would guess that it will still work, but the biggest
-  risk is probably Lwt_io, which has behaved unexpectedly (at least on Mac).
+  run on Mac until now.
 
 ### Running the program
 
