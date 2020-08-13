@@ -103,13 +103,13 @@ You need docker of course.
 Build the container image with`
 
 ```
-./deploy/build-container.sh
+./docker/build-container.sh
 ```
 
 If you end up with dangling containers from being fast-and-loose about your
-docker run calls, then use the script `./deploy/remove-dangling-images.sh`.
+docker run calls, then use the script `./docker/remove-dangling-images.sh`.
 
-Once you've built the docker image, run `./deploy/docker-interactive.sh` to
+Once you've built the docker image, run `./docker/docker-interactive.sh` to
 enter a shell in that container. You'll start in the correct directory. From
 there, you can run all the same commands that you would run if you were running
 it on the host machine, as described below.
