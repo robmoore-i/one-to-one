@@ -73,10 +73,15 @@ are not received, of course. They are informed of this.
   - There is some unaddressed duplication between the server and the client.
   - There's a lack specifically of end-to-end automatic tests.
   - There's a lack of separation for log output vs output to be read by users.
-- Runs on linux: Haven't made a docker image to run this in yet, so it has only
-  run on Mac until now.
 
-### Running the program
+## Running the program
+
+In all cases, start from the root directory of this repository. That is,
+`pwd | xargs basename` should output "one-to-one".
+
+### Pre-requisites
+
+#### Running locally
 
 Pre-requisites are`opam` and `dune`, primarily. Here are the outputs of some
 commands I ran, which you may find informative:
@@ -91,10 +96,27 @@ The OCaml toplevel, version 4.10.0
 romo$
 ```
 
-#### Run the tests
+#### Running in a docker container
+
+You need docker of course.
+
+Build the container image with`
 
 ```
-# Start from root directory of this repo
+./deploy/build-container.sh
+```
+
+If you end up with dangling containers from being fast-and-loose about your
+docker run calls, then use the script `./deploy/remove-dangling-images.sh`.
+
+Once you've built the docker image, run `./deploy/docker-interactive.sh` to
+enter a shell in that container. You'll start in the correct directory. From
+there, you can run all the same commands that you would run if you were running
+it on the host machine, as described below.
+
+### Run the tests
+
+```
 cd test
 ./run.sh
 ```
@@ -102,13 +124,6 @@ cd test
 Which should give you output like this:
 
 ```
-[NOTE] Package ounit2 is already installed (current version is 2.2.3).
-[NOTE] Package httpaf is already installed (current version is 0.6.6).
-[NOTE] Package lwt is already installed (current version is 5.3.0).
-[NOTE] Package httpaf-lwt-unix is already installed (current version is 0.6.6).
-Entering directory '/Users/romo/Documents/one-to-one'
-Entering directory '/Users/romo/Documents/one-to-one'
-Entering directory '/Users/romo/Documents/one-to-one'
 .........
 Ran: 9 tests in: 1.11 seconds.
 OK
@@ -117,7 +132,6 @@ OK
 #### Run the executable
 
 ```
-# Start from root directory of this repo
 cd exec
 ./run.sh
 ```
@@ -125,12 +139,6 @@ cd exec
 An example server run looks like this:
 
 ```
-[NOTE] Package httpaf is already installed (current version is 0.6.6).
-[NOTE] Package lwt is already installed (current version is 5.3.0).
-[NOTE] Package httpaf-lwt-unix is already installed (current version is 0.6.6).
-Entering directory '/Users/romo/Documents/one-to-one'
-Entering directory '/Users/romo/Documents/one-to-one'
-Entering directory '/Users/romo/Documents/one-to-one'
 Pick a mode ('client' or 'server')
 > server
 Which port should this server run on? (e.g. '8081')
@@ -149,12 +157,6 @@ s>
 A corresponding example client run looks like this:
 
 ```
-[NOTE] Package httpaf is already installed (current version is 0.6.6).
-[NOTE] Package lwt is already installed (current version is 5.3.0).
-[NOTE] Package httpaf-lwt-unix is already installed (current version is 0.6.6).
-Entering directory '/Users/romo/Documents/one-to-one'
-Entering directory '/Users/romo/Documents/one-to-one'
-Entering directory '/Users/romo/Documents/one-to-one'
 Pick a mode ('client' or 'server')
 > client
 What's the socket of the server in the format host:port? (e.g. 'localhost:8080')
@@ -211,17 +213,3 @@ Cons:
   mentioned above however, this is a chat program, and so I would guess that
   this use case doesn't demand support. The program is designed such that this
   would be easy to change anyway, so I don't think this is a big problem.
-  
-#### Developed on a mac
-
-Pros:
-
-- This is the machine I have available to me at home, so using it is less
-  effort than spinning up a VM or docker image for development. I am lazy,
-  so this is an important factor.
-
-Cons:
-
-- This program is intended to run on Linux.
-- Not all OCaml libraries are cross-platform, so the fact that it works on Mac
-  is no guarantee that it will work on Linux.
